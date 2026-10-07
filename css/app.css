@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "44";
+  --build: "45";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -368,9 +368,9 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
 .sk::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--card-solid) 70%, transparent), transparent); animation: shimmer 1.4s infinite; }
 @keyframes shimmer { to { transform: translateX(100%); } }
 .sk-card { height: 10rem; border-radius: var(--r-lg); }
-.syncchip { position: fixed; left: 50%; bottom: calc(1rem + var(--safe-b)); transform: translate(-50%, 160%); z-index: 60; padding: .55rem 1rem; border-radius: 999px; font-size: .82rem; font-weight: 500; background: var(--card); color: var(--warn); border: 1px solid var(--line); box-shadow: var(--shadow-hi); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); transition: transform .45s var(--spring); display: flex; align-items: center; gap: .5rem; }
+.syncchip { position: fixed; left: 50%; bottom: calc(1rem + var(--safe-b)); transform: translate(-50%, calc(100% + 2rem + var(--safe-b))); opacity: 0; visibility: hidden; z-index: 60; padding: .55rem 1rem; border-radius: 999px; font-size: .82rem; font-weight: 500; background: var(--card); color: var(--warn); border: 1px solid var(--line); box-shadow: var(--shadow-hi); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); transition: transform .45s var(--spring), opacity .25s, visibility 0s .45s; display: flex; align-items: center; gap: .5rem; }   /* ซ่อน = ใต้จอ + โปร่งใส (iPhone ขอบล่างสูง เคยโผล่ครึ่งป้าย) */
 .syncchip .spin { border-color: color-mix(in srgb, var(--warn) 30%, transparent); border-top-color: var(--warn); }
-.syncchip.show { transform: translate(-50%, 0); }
+.syncchip.show { transform: translate(-50%, 0); opacity: 1; visibility: visible; transition: transform .45s var(--spring), opacity .25s, visibility 0s; }
 
 .toasts { position: fixed; top: calc(.8rem + var(--safe-t)); left: 50%; transform: translateX(-50%); z-index: 100; display: flex; flex-direction: column; gap: .5rem; align-items: center; pointer-events: none; width: min(26rem, calc(100% - 1.6rem)); }
 .toast { pointer-events: auto; display: flex; align-items: center; gap: .75rem; width: 100%; padding: .8rem 1.05rem; border-radius: 18px; background: var(--card); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow-hi); backdrop-filter: blur(24px) saturate(1.8); -webkit-backdrop-filter: blur(24px) saturate(1.8); font-size: .9rem; animation: toastIn .55s var(--spring) both; }
