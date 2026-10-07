@@ -64,10 +64,12 @@ const SORTS = {
   con: (a, b) => (b.con ?? -1) - (a.con ?? -1) || b.orders - a.orders,
   calls: (a, b) => b.calls - a.calls,
 };
-export function sortMembers(members, idx, key = 'code') {
+// liveRank(emp) → 0 = LIVE · 1 = ปิดระบบแล้ว · 2 = ยังไม่เปิด (ใช้เฉพาะเรียงตามรหัสตอนดู Live)
+export function sortMembers(members, idx, key = 'code', liveRank = null) {
   const byCode = (a, b) => a.emp.localeCompare(b.emp);
   const f = SORTS[key] || SORTS.code;
-  return [...members].sort((a, b) => f(get(idx, a.emp), get(idx, b.emp)) || byCode(a, b));
+  const byLive = key === 'code' && liveRank ? (a, b) => liveRank(a.emp) - liveRank(b.emp) : () => 0;
+  return [...members].sort((a, b) => byLive(a, b) || f(get(idx, a.emp), get(idx, b.emp)) || byCode(a, b));
 }
 
 // สถานะการทำงานวันนี้: on / off / none
@@ -75,4 +77,31 @@ export function workState(att, emp, today) {
   const r = att.get(emp)?.get(today);
   if (!r || (!r.first_on && !r.last_off)) return { s: 'none', r };
   return { s: r.open_now ? 'on' : 'off', r };
+}
+
+// ชั่วโมงนี้ vs ชั่วโมงก่อน (sup_hourly) → { cur_hour, prev_hour, map: Map emp → {cur, prev} }
+const HKEYS = ['calls', 'answered', 'uniq', 'orders'];
+export function indexHourly(j) {
+  const map = new Map();
+  for (const r of j?.rows || []) {
+    if (!map.has(r.emp)) map.set(r.emp, { cur: {}, prev: {} });
+    const o = {}; for (const k of HKEYS) o[k] = r[k] || 0;
+    map.get(r.emp)[r.b] = o;
+  }
+  return { cur_hour: j?.cur_hour || null, prev_hour: j?.prev_hour || null, map };
+}
+export function mergeHourly(hr, emp, j) {
+  const one = indexHourly(j);
+  hr.map.set(emp, one.map.get(emp) || { cur: {}, prev: {} });
+  hr.cur_hour = one.cur_hour || hr.cur_hour; hr.prev_hour = one.prev_hour || hr.prev_hour;
+  return hr;
+}
+export function teamHourly(hr, members) {
+  const t = { cur: {}, prev: {} };
+  for (const k of HKEYS) { t.cur[k] = 0; t.prev[k] = 0; }
+  for (const m of members) {
+    const h = hr.map.get(m.emp); if (!h) continue;
+    for (const k of HKEYS) { t.cur[k] += h.cur[k] || 0; t.prev[k] += h.prev[k] || 0; }
+  }
+  return t;
 }

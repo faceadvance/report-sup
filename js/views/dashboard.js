@@ -2,7 +2,7 @@
 import { rpc, session, AuthError } from '../api.js';
 import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js';
 import { Odo } from '../odometer.js';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY } from '../store.js';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js';
 import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc } from '../fmt.js';
 import { createLive } from '../live.js';
 import { pickRange } from '../calendar.js';
@@ -22,6 +22,24 @@ const text = {
   list: (v) => (v === null ? '—' : int(v)), uniq: int, calls: int, ans: int, orders: int,
   aov: (v) => (v === null ? '—' : money(v)), con: (v) => (v === null ? '—' : pct(v)),
 };
+const HK = { calls: 'calls', ans: 'answered', uniq: 'uniq', orders: 'orders' };
+// ▲/▼ เทียบชั่วโมงก่อน (Live เท่านั้น)
+function deltaHtml(cur, prev) {
+  const d = cur - prev;
+  return d > 0 ? ['up', `▲ ${int(d)}`] : d < 0 ? ['down', `▼ ${int(-d)}`] : ['eq', '± 0'];
+}
+function paintDelta(el, h, k, full) {
+  if (!el) return;
+  if (!h || !isLiveRef()) { el.textContent = ''; el.className = el.className.split(' ')[0]; return; }
+  const cur = h.cur[k] || 0, prev = h.prev[k] || 0;
+  if (!cur && !prev && !full) { el.textContent = ''; el.className = el.className.split(' ')[0]; return; }
+  const [cls, txt] = deltaHtml(cur, prev);
+  const base = el.className.split(' ')[0];
+  const next = full ? `${txt} · ชม.นี้ ${int(cur)} / ก่อน ${int(prev)}` : txt;
+  if (el.textContent !== next) { el.textContent = next; el.className = `${base} ${cls} pop`; setTimeout(() => el.classList.remove('pop'), 500); }
+  el.title = `ชั่วโมงนี้ ${int(cur)} · ชั่วโมงก่อน ${int(prev)}`;
+}
+let isLiveRef = () => false;
 const sign = (a, b) => (a === null || b === null || a === undefined || b === undefined ? 0 : Math.sign(b - a));
 
 export function mountDashboard(root, me, { onLogout }) {
@@ -30,11 +48,13 @@ export function mountDashboard(root, me, { onLogout }) {
     me, today: today0, team: me.teams[0]?.id ?? null, mode: 'today', from: today0, to: today0,
     members: [], idx: new Map(), att: new Map(), sort: localStorage.getItem('sl_sort') || 'code',
     rows: new Map(), open: new Set(), tab: new Map(), tl: new Map(), loaded: false, seq: 0,
+    hr: indexHourly(null), hour: null,
   };
   const savedTeam = Number(localStorage.getItem('sl_team'));
   if (me.teams.some((t) => t.id === savedTeam)) S.team = savedTeam;
   const minDay = () => S.me.start_date || addDays(S.today, -60);
   const isLive = () => S.to === S.today;
+  isLiveRef = isLive;
   const multi = () => S.from !== S.to;
 
   // ════════ โครงหน้า ════════
@@ -61,11 +81,11 @@ export function mountDashboard(root, me, { onLogout }) {
     </section>
     <section class="summary">
       ${[['calls', 'สายโทร', 'k-call'], ['ans', 'รับสาย', ''], ['uniq', 'ชื่อที่โทร', ''], ['orders', 'ออเดอร์', 'k-ord'], ['aov', 'AOV (บาท)', ''], ['con', 'Con%', 'k-con']]
-        .map(([k, l, c], i) => `<div class="kpi ${c}" style="animation-delay:${i * 60}ms"><label>${l}</label><span class="v" data-k="${k}"></span><small data-sub="${k}">&nbsp;</small></div>`).join('')}
+        .map(([k, l, c], i) => `<div class="kpi ${c}" style="animation-delay:${i * 60}ms"><label>${l}</label><span class="v" data-k="${k}"></span><small data-sub="${k}">&nbsp;</small>${HK[k] ? `<span class="kd" data-kd="${k}"></span>` : ''}</div>`).join('')}
     </section>
     <div class="listbar"><h3>ลูกทีม<span class="cnt"></span></h3>
       <div class="sorter" role="group" aria-label="เรียงตาม"><span>เรียง</span>
-        ${[['code', 'รหัส'], ['orders', 'ออเดอร์'], ['con', 'Con%'], ['calls', 'สาย']].map(([k, l]) => `<button data-sort="${k}">${l}</button>`).join('')}</div></div>
+        ${[['code', 'LIVE·รหัส'], ['orders', 'ออเดอร์'], ['con', 'Con%'], ['calls', 'สาย']].map(([k, l]) => `<button data-sort="${k}">${l}</button>`).join('')}</div></div>
     <div class="thead" aria-hidden="true"><span>พนักงาน</span>${METRICS.map(([, l]) => `<span>${l}</span>`).join('')}<span></span></div>
     <div class="list"></div>
   </div>
@@ -78,6 +98,7 @@ export function mountDashboard(root, me, { onLogout }) {
   const sumOdo = {}, sumSub = {};
   root.querySelectorAll('.summary [data-k]').forEach((el) => { sumOdo[el.dataset.k] = new Odo(el); });
   root.querySelectorAll('.summary [data-sub]').forEach((el) => { sumSub[el.dataset.sub] = el; });
+  const sumKd = {}; root.querySelectorAll('.summary [data-kd]').forEach((el) => { sumKd[el.dataset.kd] = el; });
   let sumPrev = null;
 
   // ════════ segmented control (indicator เลื่อนแบบสปริง) ════════
@@ -113,7 +134,7 @@ export function mountDashboard(root, me, { onLogout }) {
           <div class="who"><span class="ava">${m.photo ? `<img src="${esc(m.photo)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : initial}<span class="st" data-s="none"></span></span>
             <div class="who-txt"><b>${esc(m.name || m.emp)}</b><span><span class="code">${esc(m.emp)}</span><span class="stx"></span></span></div>
             <span class="chev">${CHEV}</span></div>
-          ${METRICS.map(([k, l]) => `<div class="m m-${k}"><label>${l}</label><span class="v" data-k="${k}"></span>${k === 'list' ? '<span class="rg"></span>' : ''}</div>`).join('')}
+          ${METRICS.map(([k, l]) => `<div class="m m-${k}"><label>${l}</label><span class="v" data-k="${k}"></span>${k === 'list' ? '<span class="rg"></span>' : ''}${HK[k] ? `<span class="dl" data-dl="${k}"></span>` : ''}</div>`).join('')}
           <span class="head-chev chev">${CHEV}</span>
           <div class="conbar"><i></i></div>
         </button>
@@ -122,6 +143,7 @@ export function mountDashboard(root, me, { onLogout }) {
       this.odo = {};
       el.querySelectorAll('.emp-head [data-k]').forEach((v) => { this.odo[v.dataset.k] = new Odo(v); });
       this.rg = el.querySelector('.m-list .rg');
+      this.dl = {}; el.querySelectorAll('[data-dl]').forEach((d) => { this.dl[d.dataset.dl] = d; });
       this.st = el.querySelector('.st');
       this.stx = el.querySelector('.stx');
       this.bar = el.querySelector('.conbar i');
@@ -143,10 +165,15 @@ export function mountDashboard(root, me, { onLogout }) {
       }
       this.rg.textContent = multi() && t.list_min !== null && t.list_min !== t.list_max ? `${int(t.list_min)}~${int(t.list_max)}` : '';
       this.bar.style.width = Math.min(100, (t.con || 0) * 6) + '%';
+      this.updateDelta();
       this.prev = cur;
       this.updateTime();
       if (this.camp) this.camp.update(animate);
       if (S.open.has(this.m.emp) && (S.tab.get(this.m.emp) || 'camp') === 'time') renderTime(this, animate);
+    }
+    updateDelta() {
+      const h = S.hr.map.get(this.m.emp);
+      for (const k of Object.keys(HK)) paintDelta(this.dl[k], h, HK[k], false);
     }
     updateTime() {
       // แถวแสดงแค่สถานะ LIVE ของวันนี้ · รายละเอียดเวลาอยู่ในแท็บ "เวลาทำงาน"
@@ -307,7 +334,8 @@ export function mountDashboard(root, me, { onLogout }) {
 
   // ── จัดเรียง + FLIP ──
   function arrange(animate) {
-    const order = sortMembers(S.members, S.idx, S.sort).map((m) => S.rows.get(m.emp)).filter(Boolean);
+    const rank = isLive() ? (emp) => ({ on: 0, off: 1, none: 2 })[workState(S.att, emp, S.today).s] : null;
+    const order = sortMembers(S.members, S.idx, S.sort, rank).map((m) => S.rows.get(m.emp)).filter(Boolean);
     const cur = [...list.children];
     if (order.length === cur.length && order.every((r, i) => r.el === cur[i])) return;
     const first = new Map(order.map((r) => [r, r.el.getBoundingClientRect().top]));
@@ -354,6 +382,12 @@ export function mountDashboard(root, me, { onLogout }) {
     sumSub.aov.textContent = 'ต่อออเดอร์ (ไม่นับ 0 บาท)';
     sumSub.con.textContent = 'ออเดอร์ ÷ ชื่อที่โทร';
     sumPrev = cur;
+    renderTeamDelta();
+  }
+  function renderTeamDelta() {
+    const live = isLive() && S.hr.cur_hour;
+    const t = live ? teamHourly(S.hr, S.members) : null;
+    for (const k of Object.keys(HK)) paintDelta(sumKd[k], t, HK[k], true);
   }
 
   function skeleton() {
@@ -367,8 +401,10 @@ export function mountDashboard(root, me, { onLogout }) {
     const args = { p_team: S.team, p_from: S.from, p_to: S.to };
     if (!S.rows.size) skeleton();
     try {
-      const [mem, st, at] = await Promise.all([rpc('sup_team_members', args), rpc('sup_stats', args), rpc('sup_attendance', args)]);
+      const [mem, st, at, hr] = await Promise.all([rpc('sup_team_members', args), rpc('sup_stats', args), rpc('sup_attendance', args),
+        isLive() ? rpc('sup_hourly', { p_team: S.team }) : Promise.resolve(null)]);
       if (my !== S.seq) return;
+      S.hr = indexHourly(hr); S.hour = S.hr.cur_hour;
       const firstPaint = !S.rows.size;
       if (firstPaint) list.innerHTML = '';
       S.members = mem; S.idx = indexStats(st); S.att = indexAtt(at); S.tl.clear();
@@ -404,16 +440,18 @@ export function mountDashboard(root, me, { onLogout }) {
     const my = S.seq;
     const args = { p_team: S.team, p_from: S.from, p_to: S.to, p_emp: emp };
     try {
-      const [st, at] = await Promise.all([rpc('sup_stats', args), rpc('sup_attendance', args)]);
+      const [st, at, hr] = await Promise.all([rpc('sup_stats', args), rpc('sup_attendance', args), rpc('sup_hourly', { p_team: S.team, p_emp: emp })]);
       if (my !== S.seq) return;
       if (!S.rows.has(emp)) { loadAll(); return; }      // คนใหม่ในทีม → โหลดทั้งทีม
+      if (hr.cur_hour !== S.hour) { loadAll(); return; } // ข้ามชั่วโมง → โหลดทั้งทีมใหม่ (ฐานเทียบเปลี่ยน)
+      mergeHourly(S.hr, emp, hr);
       const before = get(S.idx, emp);
       mergeEmp(S.idx, emp, st); mergeAtt(S.att, emp, at);
       const after = get(S.idx, emp);
       const row = S.rows.get(emp);
       row.update(true);
       renderSummary(true);
-      if (S.sort !== 'code') arrange(true);
+      arrange(true);
       if (after.orders > before.orders) {
         const amt = after.sales_sum - before.sales_sum;
         toast(`<b>${esc(emp)}</b> ${esc(row.m.name || '')} ปิดออเดอร์${amt > 0 ? ` <b>${money(amt)}฿</b>` : ''}`, { icon: '🎉' });
@@ -489,6 +527,10 @@ export function mountDashboard(root, me, { onLogout }) {
       if (S.mode === 'today' || S.mode === 'yesterday') setMode(S.mode);
       else { syncSegs(); setLive(); }
       return;
+    }
+    if (isLive() && S.hour) {
+      const hh = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Bangkok', hour: '2-digit', hour12: false }).format(new Date()) + ':00';
+      if (hh !== S.hour) { loadAll(); return; }
     }
     if (isLive() && !multi()) for (const row of S.rows.values()) row.updateTime();
   }, 30000);
