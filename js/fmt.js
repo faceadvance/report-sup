@@ -47,3 +47,6 @@ export function bkkMinutes(iso) {
   return h * 60 + mi;
 }
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+// talktime นาที:วินาที (นาทีเกิน 60 ได้ เช่น 152:30)
+export const mmss = (sec) => { const t = Math.max(0, Math.round(sec || 0)); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`; };

@@ -1,15 +1,15 @@
 // หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
-import { rpc, session, AuthError } from '../api.js?v=19';
-import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=19';
-import { Odo } from '../odometer.js?v=19';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=19';
-import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc } from '../fmt.js?v=19';
-import { createLive } from '../live.js?v=19';
-import { pickRange } from '../calendar.js?v=19';
-import { toast, toastText, burst, pulseSvg, beat } from '../fx.js?v=19';
-import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=19';
-import { themeToggle, ping } from '../theme.js?v=19';
-import { Snd, soundButton } from '../sound.js?v=19';
+import { rpc, session, AuthError } from '../api.js?v=21';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=21';
+import { Odo } from '../odometer.js?v=21';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=21';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss } from '../fmt.js?v=21';
+import { createLive } from '../live.js?v=21';
+import { pickRange } from '../calendar.js?v=21';
+import { toast, toastText, burst, pulseSvg, beat } from '../fx.js?v=21';
+import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=21';
+import { themeToggle, ping } from '../theme.js?v=21';
+import { Snd, soundButton } from '../sound.js?v=21';
 
 const METRICS = [
   ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],
@@ -131,11 +131,11 @@ export function mountDashboard(root, me, { onLogout }) {
       const initial = esc((m.name || m.emp).trim().charAt(0));
       el.innerHTML = `<button class="emp-head" aria-expanded="false">
           <div class="who"><span class="ava">${m.photo ? `<img src="${esc(m.photo)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : initial}<span class="st" data-s="none"></span></span>
-            <div class="who-txt"><b><span class="nm">${esc(m.name || m.emp)}</span><span class="stx"></span></b><span class="sub"><span class="code">${esc(m.emp)}</span></span></div>
+            <div class="who-txt"><b><span class="nm">${esc(m.name || m.emp)}</span></b><span class="sub"><span class="code">${esc(m.emp)}</span><span class="stx"></span></span></div>
+            <span class="tt" title="Talktime (นาที:วินาที)"><span class="tt-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M10 2.5h4"/></svg><span class="tt-v"></span></span><span class="tt-d"></span></span>
             <span class="chev">${CHEV}</span></div>
           ${METRICS.map(([k, l]) => `<div class="m m-${k}"><label>${l}</label><span class="vrow"><span class="v" data-k="${k}"></span>${HK[k] ? `<span class="dl" data-dl="${k}"></span>` : ''}</span>${k === 'list' ? '<span class="rg"></span>' : ''}</div>`).join('')}
           <span class="head-chev chev">${CHEV}</span>
-          <div class="conbar"><i></i></div>
         </button>
         <div class="emp-body" role="region"><div class="emp-inner"></div></div>`;
       this.el = el;
@@ -145,7 +145,8 @@ export function mountDashboard(root, me, { onLogout }) {
       this.dl = {}; el.querySelectorAll('[data-dl]').forEach((d) => { this.dl[d.dataset.dl] = d; });
       this.st = el.querySelector('.st');
       this.stx = el.querySelector('.stx');
-      this.bar = el.querySelector('.conbar i');
+      this.ttOdo = new Odo(el.querySelector('.tt-v'));
+      this.ttD = el.querySelector('.tt-d');
       this.body = el.querySelector('.emp-body');
       this.inner = el.querySelector('.emp-inner');
       this.prev = null;
@@ -163,7 +164,9 @@ export function mountDashboard(root, me, { onLogout }) {
         this.odo[k].el.classList.toggle('zero', !v);
       }
       this.rg.textContent = multi() && t.list_min !== null && t.list_min !== t.list_max ? `${int(t.list_min)}~${int(t.list_max)}` : '';
-      this.bar.style.width = Math.min(100, (t.con || 0) * 6) + '%';
+      const tk = t.talk || 0;
+      this.ttOdo.set(mmss(tk), { dir: animate && this.prevTalk !== undefined ? Math.sign(tk - this.prevTalk) : 0 });
+      this.prevTalk = tk;
       this.updateDelta();
       this.prev = cur;
       this.updateTime();
@@ -173,6 +176,9 @@ export function mountDashboard(root, me, { onLogout }) {
     updateDelta() {
       const h = S.hr.map.get(this.m.emp);
       for (const k of Object.keys(HK)) paintDelta(this.dl[k], h, HK[k], false, S.hr.cur_hour);
+      const add = h && isLive() ? (h.cur.talk || 0) : 0;   // talktime ที่เพิ่มในชั่วโมงนี้
+      const txt = add > 0 ? '+' + mmss(add) : '';
+      if (this.ttD.textContent !== txt) { this.ttD.textContent = txt; this.ttD.classList.remove('pop'); void this.ttD.offsetWidth; if (txt) this.ttD.classList.add('pop'); }
     }
     updateTime() {
       // แถวแสดงแค่สถานะ LIVE ของวันนี้ · รายละเอียดเวลาอยู่ในแท็บ "เวลาทำงาน"
@@ -193,7 +199,7 @@ export function mountDashboard(root, me, { onLogout }) {
       this.row = row;
       const host = document.createElement('div');
       host.className = 'crows panel';
-      const all = [...CAMPAIGNS, { name: TOTAL, label: 'รวม', c: 'var(--ink)' }];
+      const all = [...CAMPAIGNS];   // ไม่มีแถวรวม (ค่ารวมอยู่ที่แถวพนักงานแล้ว)
       host.innerHTML = all.map((c, i) => `<div class="crow${c.name === TOTAL ? ' total' : ''}" data-c="${esc(c.name)}" style="--cc:${c.c};animation-delay:${i * 35}ms">
           <div class="c-name"><i></i><span>${esc(c.label || c.name)}</span></div>
           <div class="c-list"><span class="lbl">รายชื่อ </span><span class="num" data-k="list"></span><span class="rg"></span></div>

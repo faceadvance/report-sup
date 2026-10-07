@@ -3,13 +3,13 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "19";
+  --build: "21";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
   --accent: #0071e3; --accent-soft: #0071e314;
   --eyebrow: #bf4800; --live: #1a9e4b; --up: #1a9e4b; --down: #d70015; --warn: #c93400;
-  --hl: #0066cc;
+  --hl: #0066cc; --tt: #9b3fd1;
   --shadow: 0 1px 2px #0000000a, 0 10px 30px #00000012;
   --shadow-hi: 0 2px 6px #0000000f, 0 24px 60px #0000001f;
   --key: #ffffff; --key-ink: #1d1d1f;
@@ -28,7 +28,7 @@ html.dark {
   --line: #ffffff1a; --line-2: #ffffff26;
   --accent: #2997ff; --accent-soft: #2997ff22;
   --eyebrow: #f5a623; --live: #30d158; --up: #30d158; --down: #ff453a; --warn: #ff9f0a;
-  --hl: #64b5ff;
+  --hl: #64b5ff; --tt: #c77dff;
   --shadow: 0 1px 2px #00000066, 0 10px 30px #00000066;
   --shadow-hi: 0 2px 6px #00000080, 0 24px 60px #000000a0;
   --key: #2c2c2e; --key-ink: #f5f5f7;
@@ -239,7 +239,7 @@ html.dark .sorter button[aria-pressed="true"] { background: #636366; }
 .list { display: flex; flex-direction: column; gap: .7rem; }
 .emp { position: relative; border-radius: var(--r-lg); background: var(--card); backdrop-filter: blur(20px) saturate(1.6); -webkit-backdrop-filter: blur(20px) saturate(1.6); border: 1px solid var(--line); box-shadow: var(--shadow); transition: box-shadow .3s, transform .3s var(--ease); animation: rise .55s var(--ease) both; will-change: transform; }
 .emp.open { box-shadow: var(--shadow-hi); }
-.emp-head { width: 100%; text-align: left; border: 0; background: none; cursor: pointer; padding: 1rem 1.05rem .9rem; border-radius: var(--r-lg); display: grid; gap: .7rem .4rem; grid-template-columns: repeat(4, 1fr); grid-template-areas: "who who who who" "list uniq calls ans" "orders aov sales con" "bar bar bar bar"; transition: transform .15s; }
+.emp-head { width: 100%; text-align: left; border: 0; background: none; cursor: pointer; padding: 1rem 1.05rem .9rem; border-radius: var(--r-lg); display: grid; gap: .7rem .4rem; grid-template-columns: repeat(4, 1fr); grid-template-areas: "who who who who" "list uniq calls ans" "orders aov sales con"; transition: transform .15s; }
 .emp-head:active { transform: scale(.993); }
 .who { grid-area: who; display: flex; align-items: center; gap: .7rem; min-width: 0; }
 .ava { position: relative; width: 2.7rem; height: 2.7rem; flex: none; border-radius: 50%; background: linear-gradient(180deg, #e8e8ed, #d2d2d7); color: #1d1d1f; display: grid; place-items: center; font-weight: 600; font-size: 1rem; }
@@ -256,14 +256,15 @@ html.dark .ava .st[data-s="none"] { background: #48484a; }
 .who-txt { min-width: 0; flex: 1; }
 .who-txt b { display: flex; align-items: center; gap: .4rem; min-width: 0; font-weight: 600; font-size: 1.02rem; letter-spacing: -.01em; }
 .who-txt b .nm { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.who-txt b .stx { flex: none; display: inline-flex; }
-.who-txt b .stx:empty { display: none; }
+.who-txt .sub { display: flex !important; align-items: center; gap: .4rem; }
+.who-txt .stx { flex: none; display: inline-flex; }
+.who-txt .stx:empty { display: none; }
 .who-txt .sub { display: block; font-size: .78rem; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: .05rem; }
 .who-txt .code { color: var(--ink-2); font-weight: 600; margin-right: .45rem; }
 .who-txt .lv { display: inline-flex; width: auto; }
-.lv { display: inline-flex; align-items: center; gap: 4px; font-size: .7rem; font-weight: 600; letter-spacing: .02em; padding: 1px 7px; border-radius: 999px; vertical-align: 1px; }
+.lv { display: inline-flex; align-items: center; gap: 3px; font-size: .62rem; font-weight: 600; letter-spacing: .03em; padding: 0 6px; line-height: 1.5; border-radius: 999px; }
 .lv.on { color: var(--live); background: color-mix(in srgb, var(--live) 14%, transparent); }
-.lv.on i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: live 1.6s ease-in-out infinite; }
+.lv.on i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; animation: live 1.6s ease-in-out infinite; }
 .lv.off { color: var(--sub); background: var(--well); }
 .lv.none { color: var(--faint); background: var(--well); font-weight: 500; }
 .chev { width: 1.8rem; height: 1.8rem; flex: none; display: grid; place-items: center; border-radius: 50%; color: var(--sub); background: var(--well); transition: transform .45s var(--spring), background .2s, color .2s; }
@@ -421,7 +422,7 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
   .hero { padding-top: 2.6rem; }
   .summary { grid-template-columns: repeat(6, 1fr); gap: .8rem; }
   .kpi .v { font-size: 2.2rem; }
-  :root { --cols: minmax(14rem, 2.2fr) repeat(8, minmax(4.6rem, 1fr)) 2.2rem; }
+  :root { --cols: minmax(18rem, 2.8fr) repeat(8, minmax(4.4rem, 1fr)) 2.2rem; }
   .thead { display: grid; grid-template-columns: var(--cols); gap: 0 .6rem; padding: .6rem 1.2rem; position: sticky; top: calc(4.05rem + var(--safe-t)); z-index: 20; font-size: .76rem; font-weight: 500; color: var(--sub); background: var(--bg); background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); margin: 0 0 .5rem; border-radius: 12px; }
   .thead span { text-align: right; white-space: nowrap; }
   .thead span:first-child, .thead span.l { text-align: left; }
@@ -434,6 +435,7 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
   .m-list { grid-column: 2; } .m-uniq { grid-column: 3; } .m-calls { grid-column: 4; } .m-ans { grid-column: 5; }
   .m-orders { grid-column: 6; } .m-aov { grid-column: 7; } .m-sales { grid-column: 8; } .m-con { grid-column: 9; } .head-chev { grid-column: 10; display: grid; justify-self: end; }
   .who .chev { display: none; }
+  .who { padding-right: .8rem; }
   .m { text-align: right; padding: 0 !important; border: 0 !important; grid-row: 1; }
   .vrow { justify-content: flex-end; }
   .m label { display: none; }
@@ -533,3 +535,11 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
 html.sl-safe *, html.sl-safe *::before, html.sl-safe *::after { animation: none !important; transition: none !important; filter: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; will-change: auto !important; }
 html.sl-safe .bgfx, html.sl-safe .sky, html.sl-safe .auth-glow { display: none !important; }
 html.sl-safe .auth { overflow: visible !important; position: static !important; min-height: 100vh; }
+
+/* talktime: ป้ายม่วงเล็ก ชิดขวาบรรทัดชื่อ + เพิ่มในชั่วโมงนี้ */
+.tt { margin-left: auto; flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: .1rem; }
+.tt-pill { display: inline-flex; align-items: center; gap: .3rem; padding: .18rem .55rem .18rem .45rem; border-radius: 999px; color: var(--tt); background: var(--card-solid); background: color-mix(in srgb, var(--tt) 12%, transparent); font-size: .8rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.tt-pill svg { width: .85rem; height: .85rem; flex: none; }
+.tt-d { font-size: .66rem; font-weight: 600; color: var(--up); font-variant-numeric: tabular-nums; min-height: 0; }
+.tt-d:empty { display: none; }
+.tt-d.pop { animation: dpop .5s var(--spring); }

@@ -1,11 +1,11 @@
 // คำนวณ/จัดเก็บข้อมูล — ฟังก์ชันล้วน (เทสด้วย node ได้)
-import { TOTAL } from './config.js?v=19';
+import { TOTAL } from './config.js?v=21';
 
 export function derive(r) {
   const orders = r.orders || 0, uniq = r.uniq || 0, sales = Number(r.sales_sum || 0);
   return {
     list_last: r.list_last ?? null, list_min: r.list_min ?? null, list_max: r.list_max ?? null,
-    uniq, calls: r.calls || 0, answered: r.answered || 0, orders, sales_sum: sales,
+    uniq, calls: r.calls || 0, answered: r.answered || 0, orders, sales_sum: sales, talk: r.talk ?? null,
     aov: orders > 0 ? sales / orders : null,
     con: uniq > 0 ? (orders / uniq) * 100 : null,
   };
@@ -81,7 +81,7 @@ export function workState(att, emp, today) {
 }
 
 // ชั่วโมงนี้ vs ชั่วโมงก่อน (sup_hourly) → { cur_hour, prev_hour, map: Map emp → {cur, prev} }
-const HKEYS = ['calls', 'answered', 'uniq', 'orders'];
+const HKEYS = ['calls', 'answered', 'uniq', 'orders', 'talk'];
 export function indexHourly(j) {
   const map = new Map();
   for (const r of j?.rows || []) {
