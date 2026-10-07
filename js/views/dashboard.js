@@ -1,0 +1,523 @@
+// หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
+import { rpc, session, AuthError } from '../api.js';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js';
+import { Odo } from '../odometer.js';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY } from '../store.js';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc } from '../fmt.js';
+import { createLive } from '../live.js';
+import { pickRange } from '../calendar.js';
+import { toast, toastText, burst, pulseSvg, beat } from '../fx.js';
+import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js';
+import { themeToggle, ping } from '../theme.js';
+import { Snd, soundButton } from '../sound.js';
+
+const METRICS = [
+  ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],
+  ['orders', 'ออเดอร์'], ['aov', 'AOV'], ['con', 'Con%'],
+];
+const num = (m) => ({
+  list: m.list_last, uniq: m.uniq, calls: m.calls, ans: m.answered, orders: m.orders, aov: m.aov, con: m.con,
+});
+const text = {
+  list: (v) => (v === null ? '—' : int(v)), uniq: int, calls: int, ans: int, orders: int,
+  aov: (v) => (v === null ? '—' : money(v)), con: (v) => (v === null ? '—' : pct(v)),
+};
+const sign = (a, b) => (a === null || b === null || a === undefined || b === undefined ? 0 : Math.sign(b - a));
+
+export function mountDashboard(root, me, { onLogout }) {
+  const today0 = todayISO();
+  const S = {
+    me, today: today0, team: me.teams[0]?.id ?? null, mode: 'today', from: today0, to: today0,
+    members: [], idx: new Map(), att: new Map(), sort: localStorage.getItem('sl_sort') || 'code',
+    rows: new Map(), open: new Set(), tab: new Map(), tl: new Map(), loaded: false, seq: 0,
+  };
+  const savedTeam = Number(localStorage.getItem('sl_team'));
+  if (me.teams.some((t) => t.id === savedTeam)) S.team = savedTeam;
+  const minDay = () => S.me.start_date || addDays(S.today, -60);
+  const isLive = () => S.to === S.today;
+  const multi = () => S.from !== S.to;
+
+  // ════════ โครงหน้า ════════
+  root.innerHTML = `<div class="app">
+    <header class="top">
+      <div class="top-row">
+        <a class="logo" href="./" aria-label="Sup Live"><span class="lm"><img src="assets/fmark.png" alt=""></span><span class="wordmark">Sup <b>Live</b></span></a>
+        <span class="top-spacer"></span>
+        <span class="toolbar"></span>
+        <span class="who-me">${esc(me.display_name || session.get()?.name || '')}</span>
+        <button class="icon-btn" data-act="logout" aria-label="ออกจากระบบ">${LOGOUT}</button>
+      </div>
+      <div class="pulse">${pulseSvg()}</div>
+    </header>
+    <section class="hero">
+      <span class="live-pill" data-s="connecting"><i></i><span>กำลังเชื่อมต่อ…</span></span>
+      <h1 class="team-title"></h1>
+      <span class="range-label"></span>
+    </section>
+    <section class="controls">
+      <div class="seg team" role="group" aria-label="เลือกทีม"><span class="ind"></span>${me.teams.map((t) => `<button data-team="${t.id}" style="--c:${esc(t.color || '#0071e3')}"><span class="tdot"></span>${esc(t.name)}</button>`).join('')}</div>
+      <div class="seg date" role="group" aria-label="เลือกวัน"><span class="ind"></span>
+        <button data-mode="today">วันนี้</button><button data-mode="yesterday">เมื่อวาน</button><button data-mode="range">${CAL} <span>เลือกช่วง</span></button></div>
+    </section>
+    <section class="summary">
+      ${[['calls', 'สายโทร', 'k-call'], ['ans', 'รับสาย', ''], ['uniq', 'ชื่อที่โทร', ''], ['orders', 'ออเดอร์', 'k-ord'], ['aov', 'AOV (บาท)', ''], ['con', 'Con%', 'k-con']]
+        .map(([k, l, c], i) => `<div class="kpi ${c}" style="animation-delay:${i * 60}ms"><label>${l}</label><span class="v" data-k="${k}"></span><small data-sub="${k}">&nbsp;</small></div>`).join('')}
+    </section>
+    <div class="listbar"><h3>ลูกทีม<span class="cnt"></span></h3>
+      <div class="sorter" role="group" aria-label="เรียงตาม"><span>เรียง</span>
+        ${[['code', 'รหัส'], ['orders', 'ออเดอร์'], ['con', 'Con%'], ['calls', 'สาย']].map(([k, l]) => `<button data-sort="${k}">${l}</button>`).join('')}</div></div>
+    <div class="thead" aria-hidden="true"><span>พนักงาน</span>${METRICS.map(([, l]) => `<span>${l}</span>`).join('')}<span></span></div>
+    <div class="list"></div>
+  </div>
+  <div class="ptr" aria-hidden="true">${REFRESH}</div>
+  <div class="syncchip" role="status"><span class="spin"></span><span>อัปเดตไม่สำเร็จ กำลังลองใหม่…</span></div>`;
+
+  const $ = (s) => root.querySelector(s);
+  const pill = $('.live-pill'), pulse = $('.pulse'), list = $('.list'), chip = $('.syncchip');
+  $('.toolbar').append(themeToggle(), soundButton());
+  const sumOdo = {}, sumSub = {};
+  root.querySelectorAll('.summary [data-k]').forEach((el) => { sumOdo[el.dataset.k] = new Odo(el); });
+  root.querySelectorAll('.summary [data-sub]').forEach((el) => { sumSub[el.dataset.sub] = el; });
+  let sumPrev = null;
+
+  // ════════ segmented control (indicator เลื่อนแบบสปริง) ════════
+  function segSet(seg, btn) {
+    seg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+    const ind = seg.querySelector('.ind');
+    if (!btn) { ind.style.width = '0'; return; }
+    ind.style.width = btn.offsetWidth + 'px';
+    ind.style.transform = `translateX(${btn.offsetLeft}px)`;
+  }
+  const syncSegs = () => {
+    segSet($('.seg.team'), $(`.seg.team [data-team="${S.team}"]`));
+    segSet($('.seg.date'), $(`.seg.date [data-mode="${S.mode}"]`));
+    root.querySelectorAll('.sorter button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.sort === S.sort)));
+    const n = diffDays(S.from, S.to) + 1;
+    const team = S.me.teams.find((t) => t.id === S.team);
+    $('.team-title').textContent = team ? team.name : 'ยังไม่มีทีม';
+    $('.range-label').innerHTML = multi()
+      ? `<b>${thDate(S.from)} – ${thDate(S.to, true)}</b> · ${n} วัน`
+      : `<b>${thDow(S.from)} ${thDate(S.from, true)}</b>${isLive() ? ' · Live' : ' · ย้อนหลัง'}`;
+  };
+  addEventListener('resize', () => syncSegs());
+
+  // ════════ แถวพนักงาน ════════
+  class Row {
+    constructor(m) {
+      this.m = m;
+      const el = document.createElement('article');
+      el.className = 'emp';
+      el.dataset.emp = m.emp;
+      const initial = esc((m.name || m.emp).trim().charAt(0));
+      el.innerHTML = `<button class="emp-head" aria-expanded="false">
+          <div class="who"><span class="ava">${m.photo ? `<img src="${esc(m.photo)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : initial}<span class="st" data-s="none"></span></span>
+            <div class="who-txt"><b>${esc(m.name || m.emp)}</b><span><span class="code">${esc(m.emp)}</span><span class="stx"></span></span></div>
+            <span class="chev">${CHEV}</span></div>
+          ${METRICS.map(([k, l]) => `<div class="m m-${k}"><label>${l}</label><span class="v" data-k="${k}"></span>${k === 'list' ? '<span class="rg"></span>' : ''}</div>`).join('')}
+          <span class="head-chev chev">${CHEV}</span>
+          <div class="conbar"><i></i></div>
+        </button>
+        <div class="emp-body" role="region"><div class="emp-inner"></div></div>`;
+      this.el = el;
+      this.odo = {};
+      el.querySelectorAll('.emp-head [data-k]').forEach((v) => { this.odo[v.dataset.k] = new Odo(v); });
+      this.rg = el.querySelector('.m-list .rg');
+      this.st = el.querySelector('.st');
+      this.stx = el.querySelector('.stx');
+      this.bar = el.querySelector('.conbar i');
+      this.body = el.querySelector('.emp-body');
+      this.inner = el.querySelector('.emp-inner');
+      this.prev = null;
+      this.camp = null;     // ตัวควบคุมตารางแคมเปญ (สร้างตอนกาง)
+      if (m.photo) el.querySelector('.ava img').addEventListener('error', (e) => { e.target.replaceWith(document.createTextNode(initial)); });
+      el.querySelector('.emp-head').addEventListener('click', () => toggle(this));
+    }
+    update(animate) {
+      const t = get(S.idx, this.m.emp);
+      const cur = num(t);
+      for (const [k] of METRICS) {
+        const v = cur[k];
+        const dir = animate && this.prev ? sign(this.prev[k], v) : 0;
+        this.odo[k].set(text[k](v), { dir });
+        this.odo[k].el.classList.toggle('zero', !v);
+      }
+      this.rg.textContent = multi() && t.list_min !== null && t.list_min !== t.list_max ? `${int(t.list_min)}~${int(t.list_max)}` : '';
+      this.bar.style.width = Math.min(100, (t.con || 0) * 6) + '%';
+      this.prev = cur;
+      this.updateTime();
+      if (this.camp) this.camp.update(animate);
+      if (S.open.has(this.m.emp) && (S.tab.get(this.m.emp) || 'camp') === 'time') renderTime(this, animate);
+    }
+    updateTime() {
+      // แถวแสดงแค่สถานะ LIVE ของวันนี้ · รายละเอียดเวลาอยู่ในแท็บ "เวลาทำงาน"
+      const live = isLive();
+      const ws = live ? workState(S.att, this.m.emp, S.today).s : 'none';
+      this.st.dataset.s = ws;
+      this.st.hidden = !live;
+      this.stx.innerHTML = !live ? ''
+        : ws === 'on' ? '<span class="lv on"><i></i>LIVE</span>'
+        : ws === 'off' ? '<span class="lv off">ปิดระบบแล้ว</span>'
+        : '<span class="lv none">ยังไม่เปิดระบบ</span>';
+    }
+  }
+
+  // ── ตารางแคมเปญ (ในส่วนกาง) ──
+  class CampTable {
+    constructor(row) {
+      this.row = row;
+      const host = document.createElement('div');
+      host.className = 'crows panel';
+      const all = [...CAMPAIGNS, { name: TOTAL, label: 'รวม', c: 'var(--ink)' }];
+      host.innerHTML = all.map((c, i) => `<div class="crow${c.name === TOTAL ? ' total' : ''}" data-c="${esc(c.name)}" style="--cc:${c.c};animation-delay:${i * 35}ms">
+          <div class="c-name"><i></i><span>${esc(c.label || c.name)}</span></div>
+          <div class="c-list"><span class="lbl">รายชื่อ </span><span class="num" data-k="list"></span><span class="rg"></span></div>
+          <div class="c-line">
+            ${METRICS.slice(1).map(([k, l]) => `<span class="c-cell ${k}"><span class="lbl">${l} </span><span class="num" data-k="${k}"></span></span>`).join('')}
+          </div></div>`).join('');
+      this.host = host;
+      this.items = all.map((c) => {
+        const el = host.querySelector(`[data-c="${CSS.escape(c.name)}"]`);
+        const odo = {};
+        el.querySelectorAll('[data-k]').forEach((v) => { odo[v.dataset.k] = new Odo(v); });
+        return { name: c.name, el, odo, rg: el.querySelector('.rg'), prev: null };
+      });
+    }
+    update(animate) {
+      for (const it of this.items) {
+        const m = get(S.idx, this.row.m.emp, it.name);
+        const cur = num(m);
+        for (const [k] of METRICS) {
+          const dir = animate && it.prev ? sign(it.prev[k], cur[k]) : 0;
+          it.odo[k].set(text[k](cur[k]), { dir });
+        }
+        it.rg.textContent = multi() && m.list_min !== null && m.list_min !== m.list_max ? `${int(m.list_min)}~${int(m.list_max)}` : '';
+        it.el.classList.toggle('is-zero', !cur.calls && !cur.orders && !cur.list);
+        it.prev = cur;
+      }
+    }
+  }
+
+  // ── เวลาทำงาน ──
+  async function renderTime(row, fetchTl = true) {
+    const emp = row.m.emp;
+    const host = row.inner.querySelector('.tpanel');
+    if (!host) return;
+    if (multi()) {
+      const days = [];
+      for (let d = S.from; d <= S.to; d = addDays(d, 1)) days.push(d);
+      const at = S.att.get(emp) || new Map();
+      host.innerHTML = `<div class="att-scroll"><table class="att-table"><thead><tr><th>วัน</th><th>เปิด</th><th>ปิด</th><th>ชั่วโมง</th><th>สาย</th><th>ออเดอร์</th></tr></thead><tbody>
+        ${days.reverse().map((d) => {
+          const r = at.get(d);
+          if (!r || (!r.first_on && !r.calls && !r.orders)) return `<tr><td>${thDow(d)} ${thDate(d)}</td><td class="none" colspan="5">—</td></tr>`;
+          return `<tr><td>${thDow(d)} ${thDate(d)}</td><td class="num">${hm(r.first_on)}</td><td class="num">${r.open_now ? '<span style="color:var(--live);font-weight:600">เปิดอยู่</span>' : r.no_off ? '<span class="nooff">ไม่ได้กดปิด</span>' : hm(r.last_off)}</td>
+            <td class="num">${dur(r.minutes)}</td><td class="num">${int(r.calls)}</td><td class="num">${int(r.orders)}</td></tr>`;
+        }).join('')}</tbody></table></div>`;
+      return;
+    }
+    if (fetchTl || !S.tl.has(emp)) {
+      try { S.tl.set(emp, await rpc('sup_timeline', { p_emp: emp, p_day: S.from })); }
+      catch (e) { if (e instanceof AuthError) return; host.innerHTML = '<div class="empty">โหลดแถบเวลาไม่สำเร็จ</div>'; return; }
+    }
+    const tl = S.tl.get(emp);
+    if (!row.inner.querySelector('.tpanel')) return;
+    const nowM = bkkMinutes(new Date().toISOString());
+    const segs = tl.segments.map(([a, b]) => {
+      const s = bkkMinutes(a);
+      let e;
+      if (b) e = bkkMinutes(b);
+      else if (tl.is_today) e = nowM;
+      else { const lastCall = tl.calls.length ? bkkMinutes(tl.calls[tl.calls.length - 1][0]) : s; e = Math.max(s + 1, lastCall); }
+      return { s, e: Math.max(e, s + 1), open: !b && tl.is_today };
+    });
+    const calls = tl.calls.map(([t, a]) => ({ m: bkkMinutes(t), a }));
+    const pts = [...segs.flatMap((x) => [x.s, x.e]), ...calls.map((c) => c.m)];
+    const lo = Math.min(480, ...pts.map((p) => Math.floor(p / 60) * 60)), hi = Math.max(1140, ...pts.map((p) => Math.ceil(p / 60) * 60));
+    const X = (m) => ((m - lo) / (hi - lo)) * 100;
+    const [bs, be] = (S.me.break || '13:00-14:00').split('-').map((s) => { const [h, mi] = s.split(':').map(Number); return h * 60 + mi; });
+    const r = S.att.get(emp)?.get(S.from);
+    const ans = calls.filter((c) => c.a).length;
+    let axis = '';
+    for (let h = lo; h <= hi; h += 120) axis += `<span style="left:${X(h)}%">${String(h / 60).padStart(2, '0')}:00</span>`;
+    host.innerHTML = `<div class="tl">
+      <div class="tl-track">
+        <div class="tl-break" style="left:${X(bs)}%;width:${X(be) - X(bs)}%"><span>พัก</span></div>
+        ${segs.map((x, i) => `<div class="tl-seg${x.open ? ' open' : ''}" style="left:${X(x.s)}%;width:${Math.max(.6, X(x.e) - X(x.s))}%;animation-delay:${i * 120}ms"></div>`).join('')}
+        <div class="tl-calls">${calls.map((c) => `<i class="${c.a ? 'a' : ''}" style="left:${X(c.m)}%"></i>`).join('')}</div>
+      </div>
+      <div class="tl-axis">${axis}</div>
+      <div class="tl-legend">
+        <span><i style="background:var(--accent)"></i>เปิดระบบ <b>${hm(r?.first_on)}</b> – <b>${r?.open_now ? 'ตอนนี้' : r?.no_off ? 'ไม่ได้กดปิด' : hm(r?.last_off)}</b></span>
+        <span>ชั่วโมง (หักพัก) <b>${dur(r?.minutes || 0)}</b></span>
+        ${tl.is_today && r?.last_call ? `<span>โทรล่าสุด <b>${ago(r.last_call)}</b></span>` : ''}
+        <span><i style="background:var(--up)"></i>รับ <b>${ans}</b> <i style="background:#64748B;margin-left:.5rem"></i>ไม่รับ <b>${calls.length - ans}</b></span>
+      </div></div>`;
+  }
+
+  function buildBody(row) {
+    const emp = row.m.emp;
+    const tab = S.tab.get(emp) || 'camp';
+    row.inner.innerHTML = `<div class="tabs" role="tablist">
+        <button role="tab" data-tab="camp" aria-selected="${tab === 'camp'}">แคมเปญ</button>
+        <button role="tab" data-tab="time" aria-selected="${tab === 'time'}">เวลาทำงาน</button></div>
+      <div class="tab-host"></div>`;
+    const hostTab = row.inner.querySelector('.tab-host');
+    const show = (t) => {
+      S.tab.set(emp, t);
+      row.inner.querySelectorAll('[data-tab]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
+      if (t === 'camp') {
+        row.camp = new CampTable(row);
+        hostTab.replaceChildren(row.camp.host);
+        row.camp.update(false);
+      } else {
+        row.camp = null;
+        hostTab.innerHTML = '<div class="tpanel panel"><div class="sk" style="height:4.2rem"></div></div>';
+        renderTime(row, true);
+      }
+      fitBody(row);
+    };
+    row.inner.querySelector('.tabs').addEventListener('click', (e) => { const b = e.target.closest('[data-tab]'); if (b) { Snd.select(); show(b.dataset.tab); } });
+    show(tab);
+  }
+  function fitBody(row) {
+    if (!S.open.has(row.m.emp)) return;
+    requestAnimationFrame(() => { row.body.style.height = row.inner.scrollHeight + 'px'; });
+  }
+  const ro = new ResizeObserver((ents) => { for (const e of ents) { const row = S.rows.get(e.target.closest('.emp')?.dataset.emp); if (row && S.open.has(row.m.emp)) row.body.style.height = e.target.scrollHeight + 'px'; } });
+
+  function toggle(row) {
+    const emp = row.m.emp, head = row.el.querySelector('.emp-head');
+    if (S.open.has(emp)) Snd.close(); else Snd.open();
+    if (S.open.has(emp)) {
+      S.open.delete(emp);
+      row.body.style.height = row.inner.scrollHeight + 'px';
+      requestAnimationFrame(() => { row.body.style.height = '0px'; });
+      row.el.classList.remove('open'); head.setAttribute('aria-expanded', 'false');
+      ro.unobserve(row.inner);
+      setTimeout(() => { if (!S.open.has(emp)) { row.inner.innerHTML = ''; row.camp = null; } }, 560);
+    } else {
+      S.open.add(emp);
+      row.el.classList.add('open'); head.setAttribute('aria-expanded', 'true');
+      buildBody(row);
+      row.body.style.height = '0px';
+      requestAnimationFrame(() => { row.body.style.height = row.inner.scrollHeight + 'px'; });
+      ro.observe(row.inner);
+    }
+  }
+
+  // ── จัดเรียง + FLIP ──
+  function arrange(animate) {
+    const order = sortMembers(S.members, S.idx, S.sort).map((m) => S.rows.get(m.emp)).filter(Boolean);
+    const cur = [...list.children];
+    if (order.length === cur.length && order.every((r, i) => r.el === cur[i])) return;
+    const first = new Map(order.map((r) => [r, r.el.getBoundingClientRect().top]));
+    for (const r of order) list.appendChild(r.el);
+    if (!animate || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    for (const r of order) {
+      const dy = first.get(r) - r.el.getBoundingClientRect().top;
+      if (Math.abs(dy) > 1 && first.get(r) !== 0) r.el.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 600, easing: 'cubic-bezier(.16,1,.3,1)' });
+    }
+  }
+
+  function renderList(animate) {
+    const keep = new Set(S.members.map((m) => m.emp));
+    for (const [emp, row] of S.rows) if (!keep.has(emp)) { row.el.remove(); S.rows.delete(emp); S.open.delete(emp); }
+    let i = 0;
+    for (const m of S.members) {
+      if (!S.rows.has(m.emp)) {
+        const row = new Row(m);
+        row.el.style.animationDelay = `${Math.min(i, 12) * 45}ms`;
+        S.rows.set(m.emp, row);
+        list.appendChild(row.el);
+      }
+      i++;
+    }
+    for (const row of S.rows.values()) row.update(animate);
+    arrange(S.loaded);
+    $('.listbar .cnt').textContent = `${S.members.length} คน`;
+    if (!S.members.length) list.innerHTML = '<div class="empty">ยังไม่มีพนักงานในทีมนี้</div>';
+    else list.querySelector('.empty')?.remove();
+  }
+
+  function renderSummary(animate) {
+    const s = teamSummary(S.idx, S.members);
+    const cur = { calls: s.calls, ans: s.answered, uniq: s.uniq, orders: s.orders, aov: s.aov, con: s.con };
+    for (const k of Object.keys(cur)) {
+      const dir = animate && sumPrev ? sign(sumPrev[k], cur[k]) : 0;
+      sumOdo[k].set(k === 'aov' ? (cur[k] === null ? '—' : money(cur[k])) : k === 'con' ? (cur[k] === null ? '—' : pct(cur[k])) : int(cur[k]), { dir });
+    }
+    const onCnt = isLive() ? S.members.filter((m) => workState(S.att, m.emp, S.today).s === 'on').length : null;
+    sumSub.calls.textContent = onCnt === null ? `${S.members.length} คนในทีม` : `ทำงานอยู่ ${onCnt}/${S.members.length} คน`;
+    sumSub.ans.textContent = s.calls ? `อัตรารับ ${pct((s.answered / s.calls) * 100)}` : ' ';
+    sumSub.uniq.textContent = s.list !== null ? `รายชื่อถือครอง ${int(s.list)}` : 'รายชื่อ —';
+    sumSub.orders.textContent = `ยอด ${money(s.sales_sum)} ฿`;
+    sumSub.aov.textContent = 'ต่อออเดอร์ (ไม่นับ 0 บาท)';
+    sumSub.con.textContent = 'ออเดอร์ ÷ ชื่อที่โทร';
+    sumPrev = cur;
+  }
+
+  function skeleton() {
+    list.innerHTML = Array.from({ length: 4 }, (_, i) => `<div class="sk sk-card" style="animation-delay:${i * 80}ms"></div>`).join('');
+  }
+
+  // ════════ โหลดข้อมูล ════════
+  async function loadAll() {
+    const my = ++S.seq;
+    if (S.team === null) { list.innerHTML = '<div class="empty">บัญชีนี้ยังไม่ได้รับสิทธิ์ดูทีมใด · ติดต่อผู้ดูแล</div>'; setLive(); return; }
+    const args = { p_team: S.team, p_from: S.from, p_to: S.to };
+    if (!S.rows.size) skeleton();
+    try {
+      const [mem, st, at] = await Promise.all([rpc('sup_team_members', args), rpc('sup_stats', args), rpc('sup_attendance', args)]);
+      if (my !== S.seq) return;
+      const firstPaint = !S.rows.size;
+      if (firstPaint) list.innerHTML = '';
+      S.members = mem; S.idx = indexStats(st); S.att = indexAtt(at); S.tl.clear();
+      renderList(!firstPaint);
+      renderSummary(!firstPaint);
+      S.loaded = true;
+      hideChip();
+    } catch (e) {
+      if (e instanceof AuthError || my !== S.seq) return;
+      if (e.code === 'RANGE') { toastText('ช่วงวันที่เลือกดูไม่ได้ (เกิน 31 วัน หรือก่อนวันเริ่มเก็บข้อมูล)', { icon: '⚠️', err: true }); setMode('today'); return; }
+      showChip(); setTimeout(() => { if (my === S.seq) loadAll(); }, 5000);
+    }
+    setLive();
+  }
+
+  // ── สัญญาณสด: รวบต่อคน 1.5 วิ · พร้อมกันไม่เกิน 3 ──
+  const timers = new Map(), queue = [], running = new Set();
+  function onSignal(p) {
+    if (!isLive() || !S.rows.size) return;
+    beat(pulse); ping();
+    clearTimeout(timers.get(p.emp));
+    timers.set(p.emp, setTimeout(() => { timers.delete(p.emp); if (!queue.includes(p.emp)) queue.push(p.emp); pump(); }, SIGNAL_DEBOUNCE_MS));
+  }
+  function pump() {
+    while (running.size < 3 && queue.length) {
+      const emp = queue.shift();
+      if (running.has(emp)) { queue.push(emp); break; }
+      running.add(emp);
+      refreshEmp(emp).finally(() => { running.delete(emp); pump(); });
+    }
+  }
+  async function refreshEmp(emp) {
+    const my = S.seq;
+    const args = { p_team: S.team, p_from: S.from, p_to: S.to, p_emp: emp };
+    try {
+      const [st, at] = await Promise.all([rpc('sup_stats', args), rpc('sup_attendance', args)]);
+      if (my !== S.seq) return;
+      if (!S.rows.has(emp)) { loadAll(); return; }      // คนใหม่ในทีม → โหลดทั้งทีม
+      const before = get(S.idx, emp);
+      mergeEmp(S.idx, emp, st); mergeAtt(S.att, emp, at);
+      const after = get(S.idx, emp);
+      const row = S.rows.get(emp);
+      row.update(true);
+      renderSummary(true);
+      if (S.sort !== 'code') arrange(true);
+      if (after.orders > before.orders) {
+        const amt = after.sales_sum - before.sales_sum;
+        toast(`<b>${esc(emp)}</b> ${esc(row.m.name || '')} ปิดออเดอร์${amt > 0 ? ` <b>${money(amt)}฿</b>` : ''}`, { icon: '🎉' });
+        burst(row.el); Snd.success();
+      }
+      hideChip();
+    } catch (e) {
+      if (e instanceof AuthError) return;
+      showChip();
+      setTimeout(() => onSignal({ emp }), 5000);
+    }
+  }
+  function showChip() { chip.classList.add('show'); }
+  function hideChip() { chip.classList.remove('show'); }
+
+  const live = createLive({
+    getToken: () => session.get()?.token,
+    onSignal,
+    onStatus: (s) => {
+      pill.dataset.s = s === 'live' ? 'live' : s === 'history' ? 'history' : 'reconnecting';
+      pill.querySelector('span').textContent = s === 'history' ? 'ข้อมูลย้อนหลัง' : s === 'live' ? 'Live · อัปเดตทันที' : 'กำลังเชื่อมต่อใหม่…';
+    },
+    onResume: () => { if (isLive()) loadAll(); },
+  });
+  function setLive() {
+    pulse.classList.toggle('history', !isLive());
+    if (isLive() && S.team !== null) live.watch(S.team); else live.stop();
+  }
+
+  // ════════ เหตุการณ์ ════════
+  function setMode(mode, from, to) {
+    S.mode = mode;
+    if (mode === 'today') S.from = S.to = S.today;
+    else if (mode === 'yesterday') S.from = S.to = addDays(S.today, -1);
+    else { S.from = from; S.to = to; }
+    S.tl.clear();
+    syncSegs();
+    loadAll();
+  }
+  $('.seg.team').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-team]'); if (!b) return;
+    const id = Number(b.dataset.team); if (id === S.team) return;
+    Snd.select();
+    S.team = id; localStorage.setItem('sl_team', String(id));
+    for (const row of S.rows.values()) row.el.remove();
+    S.rows.clear(); S.open.clear(); sumPrev = null;
+    syncSegs(); loadAll();
+  });
+  $('.seg.date').addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-mode]'); if (!b) return;
+    const mode = b.dataset.mode;
+    Snd.select();
+    if (mode !== 'range') { if (mode !== S.mode) setMode(mode); return; }
+    const r = await pickRange({ from: S.from, to: S.to, min: minDay(), max: S.today, maxDays: MAX_DAYS });
+    if (!r) return;
+    if (r.from === S.today && r.to === S.today) setMode('today');
+    else if (r.from === r.to && r.from === addDays(S.today, -1)) setMode('yesterday');
+    else setMode('range', r.from, r.to);
+  });
+  $('.sorter').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-sort]'); if (!b) return;
+    Snd.select();
+    S.sort = b.dataset.sort; localStorage.setItem('sl_sort', S.sort);
+    syncSegs(); arrange(true);
+  });
+  $('[data-act=logout]').addEventListener('click', () => { live.stop(); onLogout(); });
+
+  // ข้ามเที่ยงคืน + อัปเดตเวลา "โทรล่าสุด"
+  const clock = setInterval(() => {
+    const t = todayISO();
+    if (t !== S.today) {
+      S.today = t;
+      if (S.mode === 'today' || S.mode === 'yesterday') setMode(S.mode);
+      else { syncSegs(); setLive(); }
+      return;
+    }
+    if (isLive() && !multi()) for (const row of S.rows.values()) row.updateTime();
+  }, 30000);
+
+  // ดึงลงเพื่อรีเฟรช (มือถือ)
+  const ptr = root.querySelector('.ptr');
+  let py = null, pd = 0;
+  addEventListener('touchstart', (e) => { if (scrollY <= 0 && !document.querySelector('.sheet')) { py = e.touches[0].clientY; pd = 0; } }, { passive: true });
+  addEventListener('touchmove', (e) => {
+    if (py === null) return;
+    pd = Math.max(0, Math.min(120, e.touches[0].clientY - py));
+    ptr.style.opacity = String(Math.min(1, pd / 70));
+    ptr.style.transform = `translateY(${pd / 1.6 - 48}px) rotate(${pd * 3}deg) scale(${.6 + Math.min(.4, pd / 175)})`;
+  }, { passive: true });
+  addEventListener('touchend', async () => {
+    if (py === null) return;
+    py = null;
+    if (pd > 80) {
+      ptr.classList.add('spin');
+      await loadAll();
+      ptr.classList.remove('spin');
+    }
+    ptr.style.transition = 'opacity .3s, transform .3s'; ptr.style.opacity = '0'; ptr.style.transform = 'translateY(-48px) scale(.6)';
+    setTimeout(() => { ptr.style.transition = ''; }, 320);
+  });
+
+  syncSegs();
+  requestAnimationFrame(syncSegs);
+  document.fonts?.ready.then(syncSegs);
+  loadAll();
+  return { destroy() { clearInterval(clock); live.stop(); ro.disconnect(); } };
+}

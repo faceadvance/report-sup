@@ -1,0 +1,6 @@
+{
+  "name": "report-sup",
+  "private": true,
+  "type": "module",
+  "description": "Sup Live — static PWA (no build step)"
+}
