@@ -1,5 +1,5 @@
 // ธีมสว่าง/มืด + สวิตช์ ☀️/🌙 + ฉากพระอาทิตย์ตก/ขึ้นตอนสลับ + เสียง (ยกจาก stock-live)
-import { Snd } from './sound.js?v=11';
+import { Snd } from './sound.js?v=12';
 const KEY = 'slTheme';
 const root = document.documentElement;
 const isDark = () => root.classList.contains('dark');
@@ -80,7 +80,10 @@ export function swap(wantDark, tg) {
   if (swapping) return;
   if (wantDark === isDark()) { if (tg) nudge(tg); return; }
   const toDark = wantDark;
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches || !document.body.animate) { Snd.toggle(); root.classList.toggle('dark', toDark); save(); return; }
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches || !document.body.animate) {   // ลดการเคลื่อนไหว: ข้ามฉาก แต่ยังมีเสียง
+    toDark ? Snd.dusk() : Snd.dawn(); Snd.toggle(); toDark ? Snd.howl(.3) : Snd.crow(.3);
+    root.classList.toggle('dark', toDark); save(); return;
+  }
   swapping = true;
   ensureScene();
   toDark ? Snd.dusk() : Snd.dawn(); Snd.toggle(); toDark ? Snd.howl(.7) : Snd.crow(1.3); Snd.sample('ambient', 0, .4);   // หมาป่าหอนตอนอาทิตย์ลับ · ไก่ขันตอนอาทิตย์ขึ้น

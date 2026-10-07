@@ -1,15 +1,15 @@
 // หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
-import { rpc, session, AuthError } from '../api.js?v=11';
-import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=11';
-import { Odo } from '../odometer.js?v=11';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=11';
-import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc } from '../fmt.js?v=11';
-import { createLive } from '../live.js?v=11';
-import { pickRange } from '../calendar.js?v=11';
-import { toast, toastText, burst, pulseSvg, beat } from '../fx.js?v=11';
-import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=11';
-import { themeToggle, ping } from '../theme.js?v=11';
-import { Snd, soundButton } from '../sound.js?v=11';
+import { rpc, session, AuthError } from '../api.js?v=12';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=12';
+import { Odo } from '../odometer.js?v=12';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=12';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc } from '../fmt.js?v=12';
+import { createLive } from '../live.js?v=12';
+import { pickRange } from '../calendar.js?v=12';
+import { toast, toastText, burst, pulseSvg, beat } from '../fx.js?v=12';
+import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=12';
+import { themeToggle, ping } from '../theme.js?v=12';
+import { Snd, soundButton } from '../sound.js?v=12';
 
 const METRICS = [
   ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],
@@ -23,26 +23,20 @@ const text = {
   aov: (v) => (v === null ? '—' : money(v)), con: (v) => (v === null ? '—' : pct(v)),
 };
 const HK = { calls: 'calls', ans: 'answered', uniq: 'uniq', orders: 'orders' };
-// ▲/▼ เทียบชั่วโมงก่อน (Live เท่านั้น)
-function deltaHtml(cur, prev) {
-  const d = cur - prev;
-  return d > 0 ? ['up', `▲ ${int(d)}`] : d < 0 ? ['down', `▼ ${int(-d)}`] : ['eq', '± 0'];
-}
-function paintDelta(el, h, k, full) {
+// +n = ชั่วโมงนี้เพิ่มขึ้นเท่าไหร่ (ตั้งแต่ HH:00 · Live เท่านั้น)
+function paintDelta(el, h, k, full, hourLabel) {
   if (!el) return;
-  if (!h || !isLiveRef()) { el.textContent = ''; el.dataset.key = ''; el.className = el.className.split(' ')[0]; return; }
-  const cur = h.cur[k] || 0, prev = h.prev[k] || 0;
-  if (!cur && !prev && !full) { el.textContent = ''; el.dataset.key = ''; el.className = el.className.split(' ')[0]; return; }
-  const [cls, txt] = deltaHtml(cur, prev);
   const base = el.className.split(' ')[0];
-  const key = `${txt}|${cur}|${prev}`;
-  if (el.dataset.key !== key) {
-    el.dataset.key = key;
-    if (full) el.innerHTML = `<b>${txt}</b><span>ชม.นี้ ${int(cur)} · ก่อน ${int(prev)}</span>`;
-    else el.textContent = txt;
-    el.className = `${base} ${cls} pop`; setTimeout(() => el.classList.remove('pop'), 500);
-  }
-  el.title = `ชั่วโมงนี้ ${int(cur)} · ชั่วโมงก่อน ${int(prev)}`;
+  const cur = h && isLiveRef() ? (h.cur[k] || 0) : 0;
+  if (!h || !isLiveRef() || (!cur && !full)) { el.textContent = ''; el.dataset.key = ''; el.className = base; return; }
+  const key = `${cur}|${hourLabel || ''}`;
+  if (el.dataset.key === key) return;
+  el.dataset.key = key;
+  const cls = cur > 0 ? 'up' : 'eq';
+  if (full) el.innerHTML = `<b>+${int(cur)}</b><span>ในชั่วโมงนี้${hourLabel ? ` (${hourLabel}–)` : ''}</span>`;
+  else el.textContent = `+${int(cur)}`;
+  el.className = `${base} ${cls} pop`; setTimeout(() => el.classList.remove('pop'), 500);
+  el.title = `ชั่วโมงนี้เพิ่ม ${int(cur)}`;
 }
 let isLiveRef = () => false;
 const sign = (a, b) => (a === null || b === null || a === undefined || b === undefined ? 0 : Math.sign(b - a));
@@ -178,7 +172,7 @@ export function mountDashboard(root, me, { onLogout }) {
     }
     updateDelta() {
       const h = S.hr.map.get(this.m.emp);
-      for (const k of Object.keys(HK)) paintDelta(this.dl[k], h, HK[k], false);
+      for (const k of Object.keys(HK)) paintDelta(this.dl[k], h, HK[k], false, S.hr.cur_hour);
     }
     updateTime() {
       // แถวแสดงแค่สถานะ LIVE ของวันนี้ · รายละเอียดเวลาอยู่ในแท็บ "เวลาทำงาน"
@@ -392,7 +386,7 @@ export function mountDashboard(root, me, { onLogout }) {
   function renderTeamDelta() {
     const live = isLive() && S.hr.cur_hour;
     const t = live ? teamHourly(S.hr, S.members) : null;
-    for (const k of Object.keys(HK)) paintDelta(sumKd[k], t, HK[k], true);
+    for (const k of Object.keys(HK)) paintDelta(sumKd[k], t, HK[k], true, S.hr.cur_hour);
   }
 
   function skeleton() {
