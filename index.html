@@ -19,6 +19,26 @@
   <link rel="preconnect" href="https://swbxecjguiohpwllvues.supabase.co" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/app.css">
+  <script>
+    // ?debug=1 → แสดง error/สถานะบนจอ (ใช้ตรวจปัญหาบนมือถือจริง)
+    (function () {
+      if (!/[?&]debug=1/.test(location.search)) return;
+      var log = [];
+      function out() {
+        var el = document.getElementById('sl-debug');
+        if (!el) { el = document.createElement('pre'); el.id = 'sl-debug'; el.style.cssText = 'position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;max-height:45vh;overflow:auto;margin:0;padding:10px;border-radius:12px;background:rgba(0,0,0,.85);color:#7CFC9A;font:11px/1.4 ui-monospace,Menlo,monospace;white-space:pre-wrap'; document.body.appendChild(el); }
+        var app = document.getElementById('app');
+        var card = document.querySelector('#app .card'), r = card && card.getBoundingClientRect(), cs = card && getComputedStyle(card);
+        el.textContent = 'UA: ' + navigator.userAgent + '\n' +
+          'app children: ' + (app ? app.children.length : '-') + ' · auth: ' + !!document.querySelector('.auth') + ' · card: ' + !!card +
+          (card ? ' · rect ' + Math.round(r.left) + ',' + Math.round(r.top) + ' ' + Math.round(r.width) + 'x' + Math.round(r.height) + ' · opacity ' + cs.opacity + ' · vis ' + cs.visibility : '') +
+          ' · vw ' + innerWidth + 'x' + innerHeight + '\n' + log.join('\n');
+      }
+      window.addEventListener('error', function (e) { log.push('ERR ' + (e.message || e.type) + ' @ ' + (e.filename || (e.target && (e.target.src || e.target.href)) || '') + ':' + (e.lineno || '')); out(); }, true);
+      window.addEventListener('unhandledrejection', function (e) { log.push('REJ ' + (e.reason && (e.reason.stack || e.reason.message) || e.reason)); out(); });
+      setInterval(out, 1500);
+    })();
+  </script>
   <script>try{var t=localStorage.getItem("slTheme");if(t?t==="dark":matchMedia("(prefers-color-scheme: dark)").matches)document.documentElement.classList.add("dark")}catch(e){}</script>
 </head>
 <body>
@@ -28,7 +48,7 @@
     (function () {
       function fail(why) {
         var a = document.getElementById('app');
-        if (!a || a.children.length) return;
+        if (!a || document.querySelector('#app .card, #app .app')) return;   // มีการ์ด login หรือหน้าหลักแล้ว = ปกติ
         a.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;font-family:-apple-system,system-ui,sans-serif">' +
           '<div><div style="font-size:28px;font-weight:700;margin-bottom:8px">Sup Live</div>' +
           '<p style="color:#6e6e73;margin:0 0 18px;line-height:1.6">โหลดหน้าเว็บไม่สำเร็จ<br>ลองใหม่อีกครั้ง หรือเปิดด้วย Safari / Chrome เวอร์ชันล่าสุด</p>' +

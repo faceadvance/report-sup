@@ -47,7 +47,7 @@ export function renderAuth(root, { notice } = {}) {
 
     // ── ขั้น 1: username + password ──
     async function stepLogin(msg) {
-      const canBio = bio.enrolled() && await bio.capable();
+      const canBio = bio.enrolled();          // วาดการ์ดทันที · เช็คความสามารถเครื่องเบื้องหลัง (ไม่บล็อกหน้า)
       const c = card(`${brand('ดูการทำงานของทีมแบบ Live')}
         <form novalidate autocomplete="on">
           <div class="field"><label for="u">ชื่อผู้ใช้</label><div class="inp">${USER}<input id="u" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="username" maxlength="40"></div></div>
@@ -80,16 +80,14 @@ export function renderAuth(root, { notice } = {}) {
         if (!user || !pass) { setMsg(c, 'กรอกชื่อผู้ใช้และรหัสผ่านให้ครบ'); shake(c); return; }
         doLogin(user, pass, false);
       });
-      const bb = c.querySelector('.btn-bio');
+      let bb = c.querySelector('.btn-bio');
+      if (bb) { bb.hidden = true; bio.capableQuick().then((ok) => { if (!document.body.contains(c)) return; if (ok) { bb.hidden = false; if (!bio.IS_IOS && !msg) setTimeout(scan, 200); } else bb.remove(); }); }
       async function scan() {
         try { const k = await bio.unlock(); u.value = k.u; p.value = '••••••••'; doLogin(k.u, k.p, true); }
         catch { setMsg(c, `${bio.BIO.name}ไม่สำเร็จ ลองอีกครั้ง หรือใช้รหัสผ่าน`, true); }
       }
-      if (bb) {
-        bb.addEventListener('click', scan);
-        // iOS ต้องแตะก่อน (ไม่มี user gesture = ถูกบล็อก) · เครื่องอื่นสแกนให้อัตโนมัติ
-        if (!bio.IS_IOS && !msg) setTimeout(scan, 350);
-      } else setTimeout(() => u.focus(), 300);
+      if (bb) bb.addEventListener('click', scan);   // iOS ต้องแตะเอง · เครื่องอื่นสแกนอัตโนมัติเมื่อเช็คแล้วรองรับ (ด้านบน)
+      else if (!bio.IS_IOS) setTimeout(() => u.focus(), 300);
     }
 
     // ── ขั้น 2: OTP numpad ──
@@ -159,7 +157,7 @@ export function renderAuth(root, { notice } = {}) {
 
     // ── ขั้น 3: ชวนเปิดสแกน (ครั้งแรกที่ใช้รหัสผ่าน · เครื่องรองรับ · ยังไม่เคยปฏิเสธ) ──
     async function afterLogin() {
-      if (usedPassword && !bio.enrolled() && !bio.declined() && await bio.capable()) {
+      if (usedPassword && !bio.enrolled() && !bio.declined() && await bio.capableQuick()) {
         const c = card(`<div class="offer"><div class="bio-ico">${bio.BIO.icon}</div>
           <p>เปิดใช้<b>${bio.BIO.name}</b>บนเครื่องนี้ไหมคะ<br>ครั้งหน้าสแกนแล้วระบบกรอกรหัสและขอ OTP ให้ทันที</p>
           <button class="btn-gold" data-k="yes">เปิดใช้ ${bio.BIO.short}</button><button class="btn-plain" data-k="no">ไม่ตอนนี้</button>

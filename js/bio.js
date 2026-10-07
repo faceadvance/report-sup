@@ -15,6 +15,10 @@ export const BIO = IS_FACE
   : { icon: FINGER, name: 'สแกนลายนิ้วมือ', short: 'สแกนนิ้ว' };
 export const IS_IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
+// ถามความสามารถเครื่อง แต่ไม่รอเกิน ms (Safari บางรุ่นไม่ตอบ/ตอบช้า → ถือว่าไม่รองรับ)
+export function capableQuick(ms = 1500) {
+  return Promise.race([capable().catch(() => false), new Promise((r) => setTimeout(() => r(false), ms))]);
+}
 export async function capable() {
   if (!window.PublicKeyCredential || !window.isSecureContext) return false;
   try {
