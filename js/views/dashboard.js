@@ -1,15 +1,15 @@
 // หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
-import { rpc, session, AuthError } from '../api.js?v=40';
-import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=40';
-import { Odo } from '../odometer.js?v=40';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=40';
-import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=40';
-import { createLive } from '../live.js?v=40';
-import { pickRange } from '../calendar.js?v=40';
-import { toast, toastText, burst, pulseSvg, beat } from '../fx.js?v=40';
-import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=40';
-import { themeToggle, ping } from '../theme.js?v=40';
-import { Snd, soundButton } from '../sound.js?v=40';
+import { rpc, session, AuthError } from '../api.js?v=41';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=41';
+import { Odo } from '../odometer.js?v=41';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=41';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=41';
+import { createLive } from '../live.js?v=41';
+import { pickRange } from '../calendar.js?v=41';
+import { toast, toastText, burst, createEcg } from '../fx.js?v=41';
+import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=41';
+import { themeToggle, ping } from '../theme.js?v=41';
+import { Snd, soundButton } from '../sound.js?v=41';
 
 const METRICS = [
   ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],
@@ -22,6 +22,10 @@ const text = {
   list: (v) => (v === null ? '—' : int(v)), uniq: int, calls: int, ans: int, orders: int,
   aov: (v) => (v === null ? '—' : money(v)), sales: (v) => money(v || 0), con: (v) => (v === null ? '—' : pct(v)),
 };
+// ป้ายกำลังโทร (ไอคอนโทรศัพท์สั่นแบบปุ่ม "กำลังโทร..." ในระบบหลัก)
+const CALLING = `<span class="calling" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M15 3.5a6 6 0 0 1 5.5 5.5M15 7a2.6 2.6 0 0 1 2 2"/></svg><span>กำลังโทร</span></span>`;
+const CALL_LONG_MS = 60 * 60 * 1000;
+const NO_CAMP = 'ระบุแคมเปญไม่ได้';
 const HK = { calls: 'calls', ans: 'answered', uniq: 'uniq', orders: 'orders' };
 const SUM_HK = { ...HK, sales: 'sales' };   // การ์ดรวมมี +฿ ยอดขายชั่วโมงนี้ด้วย (แถวรายคนไม่มี — คอลัมน์แคบ)
 // +n = ชั่วโมงนี้เพิ่มขึ้นเท่าไหร่ (ตั้งแต่ HH:00 · Live เท่านั้น)
@@ -49,6 +53,7 @@ export function mountDashboard(root, me, { onLogout }) {
     members: [], idx: new Map(), att: new Map(), sort: localStorage.getItem('sl_sort') || 'code',
     rows: new Map(), open: new Set(), tab: new Map(), tl: new Map(), loaded: false, seq: 0,
     hr: indexHourly(null), hour: null,
+    calling: new Map(),   // emp → { since: ms, camp } · เฉพาะ Live วันนี้
   };
   const savedTeam = Number(localStorage.getItem('sl_team'));
   if (me.teams.some((t) => t.id === savedTeam)) S.team = savedTeam;
@@ -67,7 +72,7 @@ export function mountDashboard(root, me, { onLogout }) {
         <span class="who-me">${esc(me.display_name || session.get()?.name || '')}</span>
         <button class="icon-btn" data-act="logout" aria-label="ออกจากระบบ">${LOGOUT}</button>
       </div>
-      <div class="pulse">${pulseSvg()}</div>
+      <div class="pulse"></div>
     </header>
     <section class="hero">
       <span class="live-pill" data-s="connecting"><i></i><span>กำลังเชื่อมต่อ…</span></span>
@@ -80,7 +85,7 @@ export function mountDashboard(root, me, { onLogout }) {
         <button data-mode="today">วันนี้</button><button data-mode="yesterday">เมื่อวาน</button><button data-mode="range">${CAL} <span>เลือกช่วง</span></button></div>
     </section>
     <section class="summary">
-      ${[['calls', 'สายโทร', 'k-call'], ['ans', 'รับสาย', ''], ['uniq', 'ชื่อที่โทร', ''], ['orders', 'ออเดอร์', 'k-ord'], ['aov', 'AOV (บาท)', ''], ['sales', 'ยอดขาย (บาท)', 'k-sales'], ['con', 'Con%', 'k-con']]
+      ${[['calls', 'สายโทร', 'k-call'], ['ans', 'รับสาย', ''], ['uniq', 'ชื่อที่โทร', ''], ['orders', 'ออเดอร์', 'k-ord'], ['aov', 'AOV<i class="lx"> (บาท)</i>', ''], ['sales', 'ยอดขาย<i class="lx"> (บาท)</i>', 'k-sales'], ['con', 'Con%', 'k-con']]
         .map(([k, l, c], i) => `<div class="kpi ${c}" style="animation-delay:${i * 60}ms"><label>${l}</label><div class="kv"><span class="v" data-k="${k}"></span>${SUM_HK[k] ? `<span class="kd" data-kd="${k}"></span>` : ''}</div><small data-sub="${k}">&nbsp;</small></div>`).join('')}
     </section>
     <p class="sum-legend" aria-hidden="true"></p>
@@ -95,6 +100,7 @@ export function mountDashboard(root, me, { onLogout }) {
 
   const $ = (s) => root.querySelector(s);
   const pill = $('.live-pill'), pulse = $('.pulse'), list = $('.list'), chip = $('.syncchip'), legend = $('.sum-legend');
+  const ecg = createEcg(pulse);
   $('.toolbar').append(themeToggle(), soundButton());
   const sumOdo = {}, sumSub = {};
   root.querySelectorAll('.summary [data-k]').forEach((el) => { sumOdo[el.dataset.k] = new Odo(el); });
@@ -133,7 +139,7 @@ export function mountDashboard(root, me, { onLogout }) {
       const initial = esc((m.name || m.emp).trim().charAt(0));
       el.innerHTML = `<button class="emp-head" aria-expanded="false">
           <div class="who"><span class="ava">${m.photo ? `<img src="${esc(m.photo)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : initial}<span class="st" data-s="none"></span></span>
-            <div class="who-txt"><b><span class="nm">${esc(m.name || m.emp)}</span></b><span class="sub"><span class="code">${esc(m.emp)}</span><span class="stx"></span></span></div>
+            <div class="who-txt"><b><span class="nm">${esc(m.name || m.emp)}</span>${CALLING}</b><span class="sub"><span class="code">${esc(m.emp)}</span>${CALLING}<span class="stx"></span></span></div>
             <span class="tt" title="Talktime รวม (นาที วินาที)"><span class="tt-l">Talktime</span><span class="tt-row"><span class="tt-v"></span><span class="tt-d"></span></span></span>
             <span class="chev">${CHEV}</span></div>
           ${METRICS.map(([k, l]) => `<div class="m m-${k}"><label>${l}</label><span class="vrow"><span class="v" data-k="${k}"></span>${HK[k] ? `<span class="dl" data-dl="${k}"></span>` : ''}</span>${k === 'list' ? '<span class="rg"></span>' : ''}</div>`).join('')}
@@ -147,6 +153,7 @@ export function mountDashboard(root, me, { onLogout }) {
       this.dl = {}; el.querySelectorAll('[data-dl]').forEach((d) => { this.dl[d.dataset.dl] = d; });
       this.st = el.querySelector('.st');
       this.stx = el.querySelector('.stx');
+      this.calls = el.querySelectorAll('.calling');
       this.ttV = el.querySelector('.tt-v');
       this.ttD = el.querySelector('.tt-d');
       this.body = el.querySelector('.emp-body');
@@ -195,6 +202,15 @@ export function mountDashboard(root, me, { onLogout }) {
       const r = S.att.get(this.m.emp)?.get(S.today);
       this.stx.textContent = !live || ws === 'on' ? '' : ws === 'off' ? `· ปิด ${hm(r?.last_off)}` : '· ยังไม่เปิด';
       this.st.title = ws === 'on' ? 'LIVE · เปิดระบบอยู่' : ws === 'off' ? 'ปิดระบบแล้ว' : 'ยังไม่เปิดระบบ';
+      this.updateCall();
+    }
+    updateCall() {
+      // ป้ายกำลังโทร: คอม = หลังรหัส · มือถือ = หลังชื่อ (CSS เลือกโชว์ตัวเดียว) · เกิน 60 นาที → แดง (ไม่ซ่อน)
+      const c = isLive() ? S.calling.get(this.m.emp) : undefined, since = c?.since;
+      const on = !!c, long = on && Date.now() - since >= CALL_LONG_MS;
+      const title = on ? `กำลังโทร${c.camp ? ' · ' + c.camp : ''} · เริ่ม ${hm(new Date(since).toISOString())}${long ? ' (เกิน 60 นาที)' : ''}` : '';
+      for (const b of this.calls) { b.hidden = !on; b.classList.toggle('long', long); b.title = title; }
+      this.camp?.updateCall();
     }
   }
 
@@ -206,7 +222,7 @@ export function mountDashboard(root, me, { onLogout }) {
       host.className = 'crows panel';
       const all = [...CAMPAIGNS];   // ไม่มีแถวรวม (ค่ารวมอยู่ที่แถวพนักงานแล้ว)
       host.innerHTML = all.map((c, i) => `<div class="crow${c.name === TOTAL ? ' total' : ''}" data-c="${esc(c.name)}" style="--cc:${c.c};animation-delay:${i * 35}ms">
-          <div class="c-name"><i></i><span>${esc(c.label || c.name)}</span></div>
+          <div class="c-name"><i></i><span>${esc(c.label || c.name)}</span>${CALLING}</div>
           <div class="c-list"><span class="lbl">รายชื่อ </span><span class="vrow"><span class="num" data-k="list"></span></span><span class="rg"></span></div>
           <div class="c-line">
             ${METRICS.slice(1).map(([k, l]) => `<span class="c-cell ${k}"><span class="lbl">${l} </span><span class="vrow"><span class="num" data-k="${k}"></span>${HK[k] ? `<span class="dl" data-dl="${k}"></span>` : ''}</span></span>`).join('')}
@@ -217,7 +233,7 @@ export function mountDashboard(root, me, { onLogout }) {
         const odo = {};
         el.querySelectorAll('[data-k]').forEach((v) => { odo[v.dataset.k] = new Odo(v); });
         const dl = {}; el.querySelectorAll('[data-dl]').forEach((d) => { dl[d.dataset.dl] = d; });
-        return { name: c.name, el, odo, dl, rg: el.querySelector('.rg'), prev: null };
+        return { name: c.name, el, odo, dl, rg: el.querySelector('.rg'), call: el.querySelector('.calling'), prev: null };
       });
     }
     update(animate) {
@@ -234,6 +250,13 @@ export function mountDashboard(root, me, { onLogout }) {
         for (const k of Object.keys(HK)) paintDelta(it.dl[k], hc, HK[k], false, S.hr.cur_hour);
         it.prev = cur;
       }
+      this.updateCall();
+    }
+    updateCall() {   // แคมเปญที่กำลังโทรอยู่ → ป้ายกำลังโทรท้ายชื่อแคมเปญ (ไม่รู้แคมเปญ/ชื่อไม่ตรง → ระบุแคมเปญไม่ได้)
+      const c = isLive() ? S.calling.get(this.row.m.emp) : undefined;
+      const want = c ? (CAMPAIGNS.some((x) => x.name === c.camp) ? c.camp : NO_CAMP) : null;
+      const long = !!c && Date.now() - c.since >= CALL_LONG_MS;
+      for (const it of this.items) { it.call.hidden = it.name !== want; it.call.classList.toggle('long', long); }
     }
   }
 
@@ -418,10 +441,12 @@ export function mountDashboard(root, me, { onLogout }) {
     const args = { p_team: S.team, p_from: S.from, p_to: S.to };
     if (!S.rows.size) skeleton();
     try {
-      const [mem, st, at, hr] = await Promise.all([rpc('sup_team_members', args), rpc('sup_stats', args), rpc('sup_attendance', args),
-        isLive() ? rpc('sup_hourly', { p_team: S.team }) : Promise.resolve(null)]);
+      const [mem, st, at, hr, cl] = await Promise.all([rpc('sup_team_members', args), rpc('sup_stats', args), rpc('sup_attendance', args),
+        isLive() ? rpc('sup_hourly', { p_team: S.team }) : Promise.resolve(null),
+        isLive() ? rpc('sup_calling', { p_team: S.team }).catch(() => []) : Promise.resolve([])]);   // ป้ายกำลังโทร พลาด = ไม่มีป้าย ไม่ล้มทั้งหน้า
       if (my !== S.seq) return;
       S.hr = indexHourly(hr); S.hour = hr && hr.clock_hour;
+      S.calling = new Map((cl || []).map((r) => [r.emp, { since: Date.parse(r.since) || Date.now(), camp: r.camp || null }]));
       const firstPaint = !S.rows.size;
       if (firstPaint) list.innerHTML = '';
       S.members = mem; S.idx = indexStats(st); S.att = indexAtt(at); S.tl.clear();
@@ -441,9 +466,20 @@ export function mountDashboard(root, me, { onLogout }) {
   const timers = new Map(), queue = [], running = new Set();
   function onSignal(p) {
     if (!isLive() || !S.rows.size) return;
-    beat(pulse); ping();
+    ping();
+    signalWave(p);
     clearTimeout(timers.get(p.emp));
     timers.set(p.emp, setTimeout(() => { timers.delete(p.emp); if (!queue.includes(p.emp)) queue.push(p.emp); pump(); }, SIGNAL_DEBOUNCE_MS));
+  }
+  // คลื่นเส้นชีพจรตามเหตุการณ์ (สาย = ทันทีจากผลติดต่อในสัญญาณ · ออเดอร์ = หลังดึงข้อมูล รู้ยอด)
+  function signalWave(p) {
+    if (p.t === 'calls') {
+      if (p.d === 'inbound') ecg.push(5);
+      else if (p.r === 'รับสาย') ecg.push(8);
+      else if (p.r === 'ไม่รับสาย') ecg.push(-6);
+      else if (p.r === 'ติดต่อไม่ได้') ecg.push(-11);
+      else ecg.push(5);
+    } else if (p.t === 'system_log') ecg.push(4, 'hump');
   }
   function pump() {
     while (running.size < 3 && queue.length) {
@@ -469,8 +505,10 @@ export function mountDashboard(root, me, { onLogout }) {
       row.update(true);
       renderSummary(true);
       arrange(true);
+      if (after.orders < before.orders || after.sales_sum < before.sales_sum) ecg.push(-12, 'beat', 2);   // ยกเลิก/ลดยอด → ลงแดง
       if (after.orders > before.orders) {
         const amt = after.sales_sum - before.sales_sum;
+        ecg.push(10 + 3 * Math.min(1, Math.max(0, amt) / 5000), 'beat', 1);   // ปิดออเดอร์ → ขึ้นเขียว สูงตามยอด (5,000฿+ = สุด)
         toast(`<b>${esc(emp)}</b> ${esc(row.m.name || '')} ปิดออเดอร์${amt > 0 ? ` <b>${money(amt)}฿</b>` : ''}`, { icon: '🎉' });
         burst(row.el); Snd.success();
       }
@@ -487,6 +525,11 @@ export function mountDashboard(root, me, { onLogout }) {
   const live = createLive({
     getToken: () => session.get()?.token,
     onSignal,
+    onCall: (p) => {
+      if (!isLive()) return;
+      if (p.c) { S.calling.set(p.emp, { since: Date.parse(p.since) || Date.now(), camp: p.camp || null }); ecg.push(3); } else S.calling.delete(p.emp);   // เริ่มโทร = กระตุกเล็ก
+      S.rows.get(p.emp)?.updateCall();
+    },
     onStatus: (s) => {
       pill.dataset.s = s === 'live' ? 'live' : s === 'history' ? 'history' : 'reconnecting';
       pill.querySelector('span').textContent = s === 'history' ? 'ข้อมูลย้อนหลัง' : s === 'live' ? 'Live · อัปเดตทันที' : 'กำลังเชื่อมต่อใหม่…';
@@ -495,6 +538,7 @@ export function mountDashboard(root, me, { onLogout }) {
   });
   function setLive() {
     pulse.classList.toggle('history', !isLive());
+    ecg.setActive(isLive());
     if (isLive() && S.team !== null) live.watch(S.team); else live.stop();
   }
 

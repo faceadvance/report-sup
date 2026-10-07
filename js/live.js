@@ -1,6 +1,6 @@
 // Realtime: private channel 'sup:team:<id>' (RLS ตรวจสิทธิ์ทีม) · สัญญาณมีแค่ {emp,t}
 // หลุด → ต่อใหม่แบบ backoff · กลับมาเปิดแอป (visibilitychange) → ต่อใหม่ + ให้แอปดึงข้อมูลทั้งหมด
-import { SB_URL, SB_KEY } from './config.js?v=40';
+import { SB_URL, SB_KEY } from './config.js?v=41';
 
 // โหลดไลบรารี supabase (UMD ในเว็บเราเอง) เฉพาะตอนต้องใช้ realtime — หน้า login ไม่ต้องรอไฟล์นี้
 let libP = null;
@@ -9,7 +9,7 @@ function loadLib() {
   if (!libP) {
     libP = new Promise((res, rej) => {
       const s = document.createElement('script');
-      s.src = 'js/vendor/supabase.js?v=40';
+      s.src = 'js/vendor/supabase.js?v=41';
       s.async = true;
       s.onload = () => (window.supabase && window.supabase.createClient ? res(window.supabase) : rej(new Error('lib')));
       s.onerror = () => { libP = null; rej(new Error('lib')); };
@@ -19,7 +19,7 @@ function loadLib() {
   return libP;
 }
 
-export function createLive({ getToken, onSignal, onStatus, onResume }) {
+export function createLive({ getToken, onSignal, onCall, onStatus, onResume }) {
   let sb = null, ch = null, team = null, retry = 0, retryT = 0, stopped = true, status = 'idle';
   const setStatus = (s) => { if (s !== status) { status = s; onStatus(s); } };
 
@@ -43,7 +43,8 @@ export function createLive({ getToken, onSignal, onStatus, onResume }) {
     if (stopped || ch) return;   // ระหว่างรอมี join อื่นแทรกแล้ว
     setStatus(retry ? 'reconnecting' : 'connecting');
     const my = c.channel('sup:team:' + team, { config: { private: true } })
-      .on('broadcast', { event: 'changed' }, (m) => { if (my === ch && m.payload?.emp) onSignal(m.payload); });
+      .on('broadcast', { event: 'changed' }, (m) => { if (my === ch && m.payload?.emp) onSignal(m.payload); })
+      .on('broadcast', { event: 'call' }, (m) => { if (my === ch && m.payload?.emp) onCall?.(m.payload); });   // กำลังโทร {emp,c,since}
     ch = my;
     my.subscribe((s) => {
       if (my !== ch) return;

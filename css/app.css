@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "40";
+  --build: "41";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -186,16 +186,12 @@ html.dark .key { box-shadow: none; }
 .icon-btn:active { transform: scale(.9); }
 .icon-btn:disabled { opacity: .35; cursor: default; }
 .icon-btn svg { width: 1.05rem; height: 1.05rem; }
-.pulse { position: relative; height: 18px; margin: .35rem calc(50% - 50vw) -.6rem; overflow: hidden; }
-.pulse svg { position: absolute; left: 0; top: 0; height: 18px; width: 200%; animation: ecg 9s linear infinite; }
-.pulse path { fill: none; stroke: var(--accent); stroke-width: 1.3; stroke-linejoin: round; opacity: .28; transition: opacity .4s, stroke-width .4s; }
-.pulse.beat path { opacity: .95; stroke-width: 2; transition: none; }
-.pulse.history svg { animation-play-state: paused; }
-.pulse.history path { opacity: .1; }
+.pulse { position: relative; height: 28px; margin: .1rem calc(50% - 50vw) -.75rem; overflow: hidden; }
+.pulse canvas { position: absolute; inset: 0; display: block; }
 .pulse::before, .pulse::after { content: ""; position: absolute; top: 0; bottom: 0; width: 22%; z-index: 1; pointer-events: none; }
+.pulse::after { width: 5%; }   /* ขวาจางนิดเดียว — คลื่นเกิดขอบขวาต้องเห็นทันที */
 .pulse::before { left: 0; background: linear-gradient(90deg, var(--bg), transparent); }
 .pulse::after { right: 0; background: linear-gradient(-90deg, var(--bg), transparent); }
-@keyframes ecg { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
 .hero { padding: 1.9rem 0 .6rem; animation: rise .7s var(--ease) both; }
 .live-pill { font-size: .82rem; font-weight: 600; letter-spacing: .02em; display: inline-flex; align-items: center; gap: 6px; color: var(--eyebrow); }
@@ -321,7 +317,14 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
 .crow:last-child { border-bottom: 0; }
 .crow .c-name { grid-area: name; font-size: .92rem; font-weight: 600; display: flex; align-items: center; gap: .5rem; min-width: 0; }
 .crow .c-name i { width: .55rem; height: .55rem; border-radius: 50%; background: var(--cc, var(--accent)); flex: none; }
-.crow .c-name span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.crow .c-name > span:not(.calling) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.crow .c-name .calling { padding: .2rem; gap: 0; }   /* แคมเปญที่กำลังโทร: ไอคอนในวงอย่างเดียว · มือถือ = หลังชื่อ */
+.crow .c-name .calling > span { display: none; }
+.crow .c-name .calling svg { width: .72rem; height: .72rem; }
+@media (min-width: 1040px) {   /* คอม: หน้าชื่อแคมเปญ (ในช่องว่างซ้ายจุดสี · ชื่อทุกแถวยังตรงกัน) */
+  .crow .c-name { position: relative; }
+  .crow .c-name .calling { position: absolute; left: 2.25rem; top: 50%; translate: 0 -50%; }
+}
 .crow .lbl { color: var(--sub); font-size: .74rem; }
 .crow .num { color: var(--ink-2); font-weight: 600; font-variant-numeric: tabular-nums; }
 .crow .c-list { grid-area: list; text-align: right; font-size: .88rem; white-space: nowrap; }
@@ -332,7 +335,7 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
 .crow.total { border-top: 1px solid var(--line-2); margin-top: .2rem; padding-top: .8rem; }
 .crow.total .c-name { font-weight: 700; }
 .crow.total .num { color: var(--ink); font-weight: 700; }
-.crow.is-zero .c-name span, .crow.is-zero .c-line, .crow.is-zero .c-list { opacity: .45; }
+.crow.is-zero .c-name > span:not(.calling), .crow.is-zero .c-line, .crow.is-zero .c-list { opacity: .45; }
 
 .tl { position: relative; padding: .3rem 0 .2rem; }
 .tl-track { position: relative; height: 3.1rem; border-radius: 12px; background: var(--well); overflow: hidden; }
@@ -545,7 +548,7 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   .motes { display: none; }
-  .pulse svg, .bgfx .spot { animation: none; }
+  .bgfx .spot { animation: none; }
 }
 
 /* ?safe=1 — ปิดเอฟเฟกต์ทั้งหมด (ใช้ไล่หาสาเหตุบนมือถือ) */
@@ -592,15 +595,49 @@ html.sl-safe .auth { overflow: visible !important; position: static !important; 
   .summary .kpi, .summary .kpi:nth-child(n+5) { grid-column: auto; padding: .75rem .8rem .7rem; }
 }
 @media (max-width: 600px) {
-  /* การ์ดเดียว 2 แถว แบบตัวเลขในการ์ดพนักงาน · ไม่มีบรรทัดอธิบาย */
-  .summary { gap: .75rem .55rem; padding: .85rem .85rem .8rem; border-radius: var(--r-lg); background: var(--card-solid); border: 1px solid var(--line); box-shadow: var(--shadow); animation: rise .6s var(--ease) both; }
-  .summary .kpi { padding: 0; background: none; border: 0; box-shadow: none; border-radius: 0; animation: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
-  .summary .kpi:nth-child(-n+4) { padding-bottom: .7rem; border-bottom: 1px solid var(--line); }
+  /* การ์ดเดียว 2 แถว (4 + 3) · เส้นแบ่งตั้งระหว่างช่อง + เส้นนอนเต็มแถวคั่นกลาง · จัดกลาง · ไม่มีบรรทัดอธิบาย */
+  .summary { gap: 0; padding: .3rem .25rem; border-radius: var(--r-lg); background: var(--card-solid); border: 1px solid var(--line); box-shadow: var(--shadow); animation: rise .6s var(--ease) both; }
+  .summary .kpi { padding: .7rem .3rem .75rem; text-align: center; background: none; border: 0; box-shadow: none; border-radius: 0; animation: none; backdrop-filter: none; -webkit-backdrop-filter: none; position: relative; }
+  .summary .kpi:nth-child(-n+4) { border-bottom: 1px solid var(--line); }
+  .summary .kpi:not(:nth-child(1)):not(:nth-child(5))::before { content: ""; position: absolute; left: 0; top: 22%; bottom: 22%; width: 1px; background: var(--line); }
   .kpi label { font-size: .68rem; }
-  .kv { flex-wrap: wrap; }
-  .kpi .v { font-size: 1.15rem; }   /* ขนาดคงที่ 2 แถวเท่ากัน (ไม่ย่อตามช่อง) · หลักล้านยังพอในช่องแถว 2 */
-  .kpi .kd { font-size: .66rem; }
-  .kpi.long .v { font-size: .98rem; }   /* 7 ตัวอักษรขึ้นไป (หลักล้าน · 100.00%) */
+  .kpi label .lx { display: none; }   /* (บาท) ไม่ต้องในมือถือ */
+  .kv { flex-direction: column; align-items: center; gap: 0; margin-top: .2rem; }   /* +n ใต้ตัวเลขเสมอ (ทุกช่องหน้าตาเดียวกัน) */
+  .kpi .v { font-size: 1.15rem; }
+  .summary .kpi:nth-child(n+5) .v { font-size: 1.3rem; }   /* แถวล่างช่องกว้างกว่า */
+  .kpi.long .v, .summary .kpi.long:nth-child(n+5) .v { font-size: .98rem; }
+  .kpi .kd { font-size: .64rem; }
   .kpi small { display: none; }
   .sum-legend { margin-bottom: 1.1rem; }
 }
+
+/* ════════ ป้าย "กำลังโทร" (แบบปุ่มกำลังโทรในระบบหลัก: ส้ม · ไอคอนสั่น · เต้นเบาๆ · ไม่มีแสงฟุ้ง) · เกิน 60 นาที → แดง ════════ */
+.calling { flex: none; display: inline-flex; align-items: center; gap: .25rem; padding: .05rem .5rem .05rem .4rem; border-radius: 999px; font-size: .68rem; font-weight: 600; line-height: 1.5; letter-spacing: 0; color: #fff; background: #f59e0b; animation: callPulse 1.5s ease-in-out infinite; }
+.calling[hidden] { display: none !important; }
+.calling svg { width: .85rem; height: .85rem; animation: callShake 1s ease-in-out infinite; transform-origin: 50% 50%; }
+.calling.long { background: #ef4444; }
+html.dark .calling { background: #ff9f0a; color: #1c1c1e; }
+html.dark .calling.long { background: #ff453a; color: #fff; }
+@keyframes callPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+@keyframes callShake {   /* แบบ fa-shake */
+  0% { transform: rotate(-15deg); } 4% { transform: rotate(15deg); } 8%, 24% { transform: rotate(-18deg); } 12%, 28% { transform: rotate(18deg); }
+  16% { transform: rotate(-22deg); } 20% { transform: rotate(22deg); } 32% { transform: rotate(-12deg); } 36% { transform: rotate(12deg); } 40%, 100% { transform: rotate(0); }
+}
+.who-txt b .calling { display: none; }   /* คอม: โชว์ตัวหลังรหัส */
+@media (max-width: 1039px) {
+  .who-txt b .calling:not([hidden]) { display: inline-flex; }   /* มือถือ/แท็บเล็ต: หลังชื่อ */
+  .who-txt .sub .calling { display: none !important; }
+}
+@media (prefers-reduced-motion: reduce) { .calling, .calling svg { animation: none; } }
+.who-txt .sub:has(.calling:not([hidden])) { overflow: visible; }   /* ไม่ตัดขอบป้าย/เงา */
+@media (min-width: 1040px) { .calling { font-size: .62rem; padding: 0 .42rem 0 .32rem; gap: .2rem; } .calling svg { width: .75rem; height: .75rem; } }
+/* มือถือ: ชื่อมาก่อน — ช่องชื่อแคบ (< 13rem) → ป้ายเหลือไอคอนโทรศัพท์สั่นในวงส้ม (ชื่อไม่โดนบีบ) */
+@supports (container-type: inline-size) {
+  .who-txt { container-type: inline-size; }
+  @container (max-width: 13rem) {
+    .who-txt b .calling { padding: .2rem; gap: 0; }
+    .who-txt b .calling > span { display: none; }
+    .who-txt b .nm { flex: 0 1 auto; }
+  }
+}
+.kpi label .lx { font-style: normal; }
