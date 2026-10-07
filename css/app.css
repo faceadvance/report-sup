@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "29";
+  --build: "30";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -442,9 +442,10 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
   .who .chev { display: none; }
   .thead .th-emp { grid-column: 1 / 3; }
   .thead .th-tt { text-align: right; }
+  .thead span.has-dl { padding-right: 2.65rem; }   /* หัวคอลัมน์ตรงกับตัวเลข (เว้นช่อง +n) */
   .m { text-align: right; padding: 0 !important; border: 0 !important; grid-row: 1; }
   .vrow { display: flex; width: 100%; justify-content: flex-end; align-items: baseline; gap: .35rem; }
-  .vrow .dl { order: -1; display: inline-block; min-width: 2.4rem; text-align: right; }   /* +n ช่องย่อยติดหน้าตัวเลขตัวเอง · ตัวเลขชิดขวาตรงกัน */
+  .vrow .dl { display: inline-block; min-width: 2.3rem; text-align: left; }   /* ตัวเลข → +n ในช่องย่อยกว้างคงที่ทางขวา · ตัวเลขชิดขวาตรงกัน · +n ชิดซ้ายตรงกัน */
   .vrow .dl:empty { display: inline-block; visibility: hidden; }
   .m label { display: none; }
   .m .v, .m-list .v, .m-uniq .v, .m-aov .v, .m-sales .v { font-size: 1.12rem; font-weight: 600; color: var(--ink); }
