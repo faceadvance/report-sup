@@ -50,3 +50,6 @@ export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&a
 
 // talktime นาที:วินาที (นาทีเกิน 60 ได้ เช่น 152:30)
 export const mmss = (sec) => { const t = Math.max(0, Math.round(sec || 0)); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`; };
+
+// talktime แบบมีหน่วย (HTML): 84น. 56วิ · ใช้กับป้าย talktime
+export const talkHtml = (sec) => { const t = Math.max(0, Math.round(sec || 0)); return `<b>${Math.floor(t / 60)}</b><i>น.</i> <b>${String(t % 60).padStart(2, '0')}</b><i>วิ</i>`; };

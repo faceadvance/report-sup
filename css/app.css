@@ -3,13 +3,13 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "21";
+  --build: "23";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
   --accent: #0071e3; --accent-soft: #0071e314;
   --eyebrow: #bf4800; --live: #1a9e4b; --up: #1a9e4b; --down: #d70015; --warn: #c93400;
-  --hl: #0066cc; --tt: #9b3fd1;
+  --hl: #0066cc;
   --shadow: 0 1px 2px #0000000a, 0 10px 30px #00000012;
   --shadow-hi: 0 2px 6px #0000000f, 0 24px 60px #0000001f;
   --key: #ffffff; --key-ink: #1d1d1f;
@@ -28,7 +28,7 @@ html.dark {
   --line: #ffffff1a; --line-2: #ffffff26;
   --accent: #2997ff; --accent-soft: #2997ff22;
   --eyebrow: #f5a623; --live: #30d158; --up: #30d158; --down: #ff453a; --warn: #ff9f0a;
-  --hl: #64b5ff; --tt: #c77dff;
+  --hl: #64b5ff;
   --shadow: 0 1px 2px #00000066, 0 10px 30px #00000066;
   --shadow-hi: 0 2px 6px #00000080, 0 24px 60px #000000a0;
   --key: #2c2c2e; --key-ink: #f5f5f7;
@@ -422,7 +422,7 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
   .hero { padding-top: 2.6rem; }
   .summary { grid-template-columns: repeat(6, 1fr); gap: .8rem; }
   .kpi .v { font-size: 2.2rem; }
-  :root { --cols: minmax(18rem, 2.8fr) repeat(8, minmax(4.4rem, 1fr)) 2.2rem; }
+  :root { --cols: 3.2rem minmax(9rem, 1.7fr) 7.4rem repeat(8, minmax(4.4rem, 1fr)) 2.2rem; }
   .thead { display: grid; grid-template-columns: var(--cols); gap: 0 .6rem; padding: .6rem 1.2rem; position: sticky; top: calc(4.05rem + var(--safe-t)); z-index: 20; font-size: .76rem; font-weight: 500; color: var(--sub); background: var(--bg); background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); margin: 0 0 .5rem; border-radius: 12px; }
   .thead span { text-align: right; white-space: nowrap; }
   .thead span:first-child, .thead span.l { text-align: left; }
@@ -430,12 +430,17 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
   .emp { border-radius: 18px; }
   .emp-head { grid-template-columns: var(--cols); grid-template-areas: none; gap: 0 .6rem; align-items: center; padding: .85rem 1.2rem; border-radius: 18px; }
   .emp:hover { transform: translateY(-1px); box-shadow: var(--shadow-hi); }
-  .who, .m, .conbar { grid-area: auto !important; }
-  .who { grid-column: 1; }
-  .m-list { grid-column: 2; } .m-uniq { grid-column: 3; } .m-calls { grid-column: 4; } .m-ans { grid-column: 5; }
-  .m-orders { grid-column: 6; } .m-aov { grid-column: 7; } .m-sales { grid-column: 8; } .m-con { grid-column: 9; } .head-chev { grid-column: 10; display: grid; justify-self: end; }
+  .who, .m { grid-area: auto !important; }
+  .who { display: contents; }
+  .who .ava { grid-column: 1; grid-row: 1; }
+  .who .who-txt { grid-column: 2; grid-row: 1; padding-right: .6rem; }
+  .who .tt { grid-column: 3; grid-row: 1; margin: 0; }
+  .who .tt-l { display: none; }
+  .m-list { grid-column: 4; } .m-uniq { grid-column: 5; } .m-calls { grid-column: 6; } .m-ans { grid-column: 7; }
+  .m-orders { grid-column: 8; } .m-aov { grid-column: 9; } .m-sales { grid-column: 10; } .m-con { grid-column: 11; } .head-chev { grid-column: 12; display: grid; justify-self: end; }
   .who .chev { display: none; }
-  .who { padding-right: .8rem; }
+  .thead .th-emp { grid-column: 1 / 3; }
+  .thead .th-tt { text-align: right; }
   .m { text-align: right; padding: 0 !important; border: 0 !important; grid-row: 1; }
   .vrow { justify-content: flex-end; }
   .m label { display: none; }
@@ -446,14 +451,14 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
   .emp-inner { padding: 0 1.2rem 1.1rem; }
   .crow { grid-template-columns: var(--cols); grid-template-areas: none; gap: 0 .6rem; padding: .55rem 0; align-items: center; }
   .crow .c-name, .crow .c-list, .crow .c-cell { grid-area: auto; grid-row: 1; }
-  .crow .c-name { grid-column: 1; padding-left: 3.4rem; font-weight: 500; }
+  .crow .c-name { grid-column: 1 / 4; padding-left: 3.8rem; font-weight: 500; }
   .crow .c-line { display: contents; }
   .crow .lbl { display: none; }
-  .crow .c-list { grid-column: 2; }
+  .crow .c-list { grid-column: 4; }
   .crow .c-list, .crow .c-cell { text-align: right; font-size: .95rem; }
   .crow .c-list .rg { display: block; margin: 0; }
-  .crow .c-cell.uniq { grid-column: 3; } .crow .c-cell.calls { grid-column: 4; } .crow .c-cell.ans { grid-column: 5; }
-  .crow .c-cell.orders { grid-column: 6; } .crow .c-cell.aov { grid-column: 7; } .crow .c-cell.sales { grid-column: 8; } .crow .c-cell.con { grid-column: 9; }
+  .crow .c-cell.uniq { grid-column: 5; } .crow .c-cell.calls { grid-column: 6; } .crow .c-cell.ans { grid-column: 7; }
+  .crow .c-cell.orders { grid-column: 8; } .crow .c-cell.aov { grid-column: 9; } .crow .c-cell.sales { grid-column: 10; } .crow .c-cell.con { grid-column: 11; }
   .sheet { left: 50%; right: auto; bottom: auto; top: 50%; width: 25rem; border-radius: 26px; transform: translate(-50%, -50%); animation: popIn .4s var(--spring) both; padding: 1.3rem 1.3rem 1.2rem; box-shadow: var(--shadow-hi); }
   .sheet.out { animation: popOut .2s ease-in both; }
   .grab { display: none; }
@@ -536,10 +541,14 @@ html.sl-safe *, html.sl-safe *::before, html.sl-safe *::after { animation: none 
 html.sl-safe .bgfx, html.sl-safe .sky, html.sl-safe .auth-glow { display: none !important; }
 html.sl-safe .auth { overflow: visible !important; position: static !important; min-height: 100vh; }
 
-/* talktime: ป้ายม่วงเล็ก ชิดขวาบรรทัดชื่อ + เพิ่มในชั่วโมงนี้ */
-.tt { margin-left: auto; flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: .1rem; }
-.tt-pill { display: inline-flex; align-items: center; gap: .3rem; padding: .18rem .55rem .18rem .45rem; border-radius: 999px; color: var(--tt); background: var(--card-solid); background: color-mix(in srgb, var(--tt) 12%, transparent); font-size: .8rem; font-weight: 700; font-variant-numeric: tabular-nums; }
-.tt-pill svg { width: .85rem; height: .85rem; flex: none; }
-.tt-d { font-size: .66rem; font-weight: 600; color: var(--up); font-variant-numeric: tabular-nums; min-height: 0; }
+/* talktime: บล็อกเรียบแบบตัวเลขอื่น — ป้ายเล็ก TALKTIME + ค่า (หน่วยตัวเล็กสีเทา) + เพิ่มในชั่วโมงนี้ */
+.tt { margin-left: auto; flex: none; display: flex; flex-direction: column; align-items: flex-end; text-align: right; min-width: 0; }
+.tt-l { font-size: .62rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--sub); line-height: 1.2; }
+.tt-row { display: flex; flex-direction: column; align-items: flex-end; gap: 0; }
+.tt-v { font-size: 1.05rem; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; letter-spacing: -.01em; }
+.tt-v b, .tt-d b { font-weight: 700; }
+.tt-v i, .tt-d i { font-style: normal; font-size: .62em; font-weight: 500; color: var(--sub); margin: 0 .12em 0 .06em; }
+.tt-d { font-size: .7rem; color: var(--up); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tt-d i { color: var(--up); opacity: .8; }
 .tt-d:empty { display: none; }
-.tt-d.pop { animation: dpop .5s var(--spring); }
+.tt-v.pop, .tt-d.pop { animation: dpop .5s var(--spring); }
