@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "27";
+  --build: "29";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -443,9 +443,9 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
   .thead .th-emp { grid-column: 1 / 3; }
   .thead .th-tt { text-align: right; }
   .m { text-align: right; padding: 0 !important; border: 0 !important; grid-row: 1; }
-  .vrow { display: flex; width: 100%; justify-content: flex-end; align-items: center; }
-  .vrow .dl { order: -1; margin: 0 auto 0 0; padding: .05rem .4rem; border-radius: 6px; font-size: .68rem; line-height: 1.35; background: color-mix(in srgb, var(--up) 12%, transparent); }   /* +n ชิปชิดซ้ายในช่องตัวเอง · ตัวเลขชิดขวาตรงกัน */
-  .vrow .dl.eq { background: var(--well); }
+  .vrow { display: flex; width: 100%; justify-content: flex-end; align-items: baseline; gap: .35rem; }
+  .vrow .dl { order: -1; display: inline-block; min-width: 2.4rem; text-align: right; }   /* +n ช่องย่อยติดหน้าตัวเลขตัวเอง · ตัวเลขชิดขวาตรงกัน */
+  .vrow .dl:empty { display: inline-block; visibility: hidden; }
   .m label { display: none; }
   .m .v, .m-list .v, .m-uniq .v, .m-aov .v, .m-sales .v { font-size: 1.12rem; font-weight: 600; color: var(--ink); }
   .m-con .v { color: var(--hl); font-weight: 700; }
@@ -459,6 +459,7 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
   .crow .lbl { display: none; }
   .crow .c-list { grid-column: 4; }
   .crow .c-list, .crow .c-cell { text-align: right; font-size: .95rem; }
+  .crow .c-cell .dl { font-size: .66rem; }
   .crow .c-list .rg { display: block; margin: 0; }
   .crow .c-cell.uniq { grid-column: 5; } .crow .c-cell.calls { grid-column: 6; } .crow .c-cell.ans { grid-column: 7; }
   .crow .c-cell.orders { grid-column: 8; } .crow .c-cell.aov { grid-column: 9; } .crow .c-cell.sales { grid-column: 10; } .crow .c-cell.con { grid-column: 11; }
@@ -506,6 +507,9 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
   .crow .c-cell, .crow .c-list { white-space: normal; min-width: 0; padding-left: 0; }
   .crow .c-cell .lbl, .crow .c-list .lbl { display: block; font-size: .72rem; line-height: 1.3; }
   .crow .c-cell .num, .crow .c-list .num { font-size: 1rem; }
+  .crow .vrow { display: block; }
+  .crow .c-list, .crow .c-cell { font-size: .86rem; line-height: 1.5; }
+  .crow .vrow .dl { display: inline; margin-left: .3rem; }
   .crow .c-list .rg { display: block; margin: 0; }
   .tl-legend { gap: .25rem .8rem; font-size: .78rem; }
   .att-table { font-size: .82rem; }

@@ -1,5 +1,5 @@
 // คำนวณ/จัดเก็บข้อมูล — ฟังก์ชันล้วน (เทสด้วย node ได้)
-import { TOTAL } from './config.js?v=27';
+import { TOTAL } from './config.js?v=29';
 
 export function derive(r) {
   const orders = r.orders || 0, uniq = r.uniq || 0, sales = Number(r.sales_sum || 0);
@@ -83,17 +83,20 @@ export function workState(att, emp, today) {
 // ชั่วโมงนี้ vs ชั่วโมงก่อน (sup_hourly) → { cur_hour, prev_hour, map: Map emp → {cur, prev} }
 const HKEYS = ['calls', 'answered', 'uniq', 'orders', 'talk'];
 export function indexHourly(j) {
+  // map: emp → { cur, prev (รวม), camp: { ชื่อแคมเปญ: { cur, prev } } }
   const map = new Map();
   for (const r of j?.rows || []) {
-    if (!map.has(r.emp)) map.set(r.emp, { cur: {}, prev: {} });
+    if (!map.has(r.emp)) map.set(r.emp, { cur: {}, prev: {}, camp: {} });
     const o = {}; for (const k of HKEYS) o[k] = r[k] || 0;
-    map.get(r.emp)[r.b] = o;
+    const e = map.get(r.emp);
+    if (!r.camp || r.camp === '__total__') e[r.b] = o;
+    else (e.camp[r.camp] ||= { cur: {}, prev: {} })[r.b] = o;
   }
   return { cur_hour: j?.cur_hour || null, prev_hour: j?.prev_hour || null, map };
 }
 export function mergeHourly(hr, emp, j) {
   const one = indexHourly(j);
-  hr.map.set(emp, one.map.get(emp) || { cur: {}, prev: {} });
+  hr.map.set(emp, one.map.get(emp) || { cur: {}, prev: {}, camp: {} });
   hr.cur_hour = one.cur_hour || hr.cur_hour; hr.prev_hour = one.prev_hour || hr.prev_hour;
   return hr;
 }

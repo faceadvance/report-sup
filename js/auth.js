@@ -1,10 +1,10 @@
 // หน้า login 3 ขั้น: รหัสผ่าน (หรือสแกน) → OTP numpad → (ชวนเปิดสแกนครั้งแรก) → resolve
-import { edge, session } from './api.js?v=27';
-import * as bio from './bio.js?v=27';
-import { USER, LOCK, SHIELD, BACKSPACE } from './icons.js?v=27';
-import { esc } from './fmt.js?v=27';
-import { themeToggle } from './theme.js?v=27';
-import { Snd, soundButton } from './sound.js?v=27';
+import { edge, session } from './api.js?v=29';
+import * as bio from './bio.js?v=29';
+import { USER, LOCK, SHIELD, BACKSPACE } from './icons.js?v=29';
+import { esc } from './fmt.js?v=29';
+import { themeToggle } from './theme.js?v=29';
+import { Snd, soundButton } from './sound.js?v=29';
 
 const OTP_LEN = 6;
 

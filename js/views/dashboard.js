@@ -1,15 +1,15 @@
 // หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
-import { rpc, session, AuthError } from '../api.js?v=27';
-import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=27';
-import { Odo } from '../odometer.js?v=27';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=27';
-import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=27';
-import { createLive } from '../live.js?v=27';
-import { pickRange } from '../calendar.js?v=27';
-import { toast, toastText, burst, pulseSvg, beat } from '../fx.js?v=27';
-import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=27';
-import { themeToggle, ping } from '../theme.js?v=27';
-import { Snd, soundButton } from '../sound.js?v=27';
+import { rpc, session, AuthError } from '../api.js?v=29';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=29';
+import { Odo } from '../odometer.js?v=29';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=29';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=29';
+import { createLive } from '../live.js?v=29';
+import { pickRange } from '../calendar.js?v=29';
+import { toast, toastText, burst, pulseSvg, beat } from '../fx.js?v=29';
+import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=29';
+import { themeToggle, ping } from '../theme.js?v=29';
+import { Snd, soundButton } from '../sound.js?v=29';
 
 const METRICS = [
   ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],
@@ -205,16 +205,17 @@ export function mountDashboard(root, me, { onLogout }) {
       const all = [...CAMPAIGNS];   // ไม่มีแถวรวม (ค่ารวมอยู่ที่แถวพนักงานแล้ว)
       host.innerHTML = all.map((c, i) => `<div class="crow${c.name === TOTAL ? ' total' : ''}" data-c="${esc(c.name)}" style="--cc:${c.c};animation-delay:${i * 35}ms">
           <div class="c-name"><i></i><span>${esc(c.label || c.name)}</span></div>
-          <div class="c-list"><span class="lbl">รายชื่อ </span><span class="num" data-k="list"></span><span class="rg"></span></div>
+          <div class="c-list"><span class="lbl">รายชื่อ </span><span class="vrow"><span class="num" data-k="list"></span></span><span class="rg"></span></div>
           <div class="c-line">
-            ${METRICS.slice(1).map(([k, l]) => `<span class="c-cell ${k}"><span class="lbl">${l} </span><span class="num" data-k="${k}"></span></span>`).join('')}
+            ${METRICS.slice(1).map(([k, l]) => `<span class="c-cell ${k}"><span class="lbl">${l} </span><span class="vrow"><span class="num" data-k="${k}"></span>${HK[k] ? `<span class="dl" data-dl="${k}"></span>` : ''}</span></span>`).join('')}
           </div></div>`).join('');
       this.host = host;
       this.items = all.map((c) => {
         const el = host.querySelector(`[data-c="${CSS.escape(c.name)}"]`);
         const odo = {};
         el.querySelectorAll('[data-k]').forEach((v) => { odo[v.dataset.k] = new Odo(v); });
-        return { name: c.name, el, odo, rg: el.querySelector('.rg'), prev: null };
+        const dl = {}; el.querySelectorAll('[data-dl]').forEach((d) => { dl[d.dataset.dl] = d; });
+        return { name: c.name, el, odo, dl, rg: el.querySelector('.rg'), prev: null };
       });
     }
     update(animate) {
@@ -227,6 +228,8 @@ export function mountDashboard(root, me, { onLogout }) {
         }
         it.rg.textContent = multi() && m.list_min !== null && m.list_min !== m.list_max ? `${int(m.list_min)}~${int(m.list_max)}` : '';
         it.el.classList.toggle('is-zero', !cur.calls && !cur.orders && !cur.list);
+        const hc = S.hr.map.get(this.row.m.emp)?.camp?.[it.name];   // +n ชั่วโมงนี้ ต่อแคมเปญ
+        for (const k of Object.keys(HK)) paintDelta(it.dl[k], hc, HK[k], false, S.hr.cur_hour);
         it.prev = cur;
       }
     }
