@@ -268,7 +268,9 @@ html.dark .ava .st[data-s="none"] { background: #48484a; }
 .conbar i { display: block; height: 100%; width: 0; border-radius: 4px; background: var(--ink); transition: width 1s var(--ease); }
 html.dark .conbar i { background: var(--ink-2); }
 .head-chev { display: none; }
-.dl { display: block; font-size: .7rem; font-weight: 600; line-height: 1.3; min-height: 0; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.vrow { display: inline-flex; align-items: flex-end; gap: .35rem; max-width: 100%; }
+.dl { display: inline-block; font-size: .7rem; font-weight: 600; line-height: 1.3; margin-bottom: .12em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dl:empty { display: none; }
 .dl.up, .kd.up { color: var(--up); } .dl.down, .kd.down { color: var(--down); } .dl.eq, .kd.eq { color: var(--faint); }
 .kd { display: block; margin-top: .2rem; font-size: .72rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 .dl.pop, .kd.pop { animation: dpop .5s var(--spring); }
@@ -418,6 +420,7 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
   .m-orders { grid-column: 6; } .m-aov { grid-column: 7; } .m-con { grid-column: 8; } .head-chev { grid-column: 9; display: grid; justify-self: end; }
   .who .chev { display: none; }
   .m { text-align: right; padding: 0 !important; border: 0 !important; grid-row: 1; }
+  .vrow { justify-content: flex-end; }
   .m label { display: none; }
   .m .v, .m-list .v, .m-uniq .v, .m-aov .v { font-size: 1.12rem; font-weight: 600; color: var(--ink); }
   .m-con .v { color: var(--hl); font-weight: 700; }

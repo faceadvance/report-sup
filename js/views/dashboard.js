@@ -134,7 +134,7 @@ export function mountDashboard(root, me, { onLogout }) {
           <div class="who"><span class="ava">${m.photo ? `<img src="${esc(m.photo)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : initial}<span class="st" data-s="none"></span></span>
             <div class="who-txt"><b>${esc(m.name || m.emp)}</b><span><span class="code">${esc(m.emp)}</span><span class="stx"></span></span></div>
             <span class="chev">${CHEV}</span></div>
-          ${METRICS.map(([k, l]) => `<div class="m m-${k}"><label>${l}</label><span class="v" data-k="${k}"></span>${k === 'list' ? '<span class="rg"></span>' : ''}${HK[k] ? `<span class="dl" data-dl="${k}"></span>` : ''}</div>`).join('')}
+          ${METRICS.map(([k, l]) => `<div class="m m-${k}"><label>${l}</label><span class="vrow"><span class="v" data-k="${k}"></span>${HK[k] ? `<span class="dl" data-dl="${k}"></span>` : ''}</span>${k === 'list' ? '<span class="rg"></span>' : ''}</div>`).join('')}
           <span class="head-chev chev">${CHEV}</span>
           <div class="conbar"><i></i></div>
         </button>
