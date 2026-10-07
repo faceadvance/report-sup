@@ -1,6 +1,6 @@
 // Realtime: private channel 'sup:team:<id>' (RLS ตรวจสิทธิ์ทีม) · สัญญาณมีแค่ {emp,t}
 // หลุด → ต่อใหม่แบบ backoff · กลับมาเปิดแอป (visibilitychange) → ต่อใหม่ + ให้แอปดึงข้อมูลทั้งหมด
-import { SB_URL, SB_KEY } from './config.js?v=12';
+import { SB_URL, SB_KEY } from './config.js?v=14';
 
 // โหลดไลบรารี supabase (UMD ในเว็บเราเอง) เฉพาะตอนต้องใช้ realtime — หน้า login ไม่ต้องรอไฟล์นี้
 let libP = null;
@@ -9,7 +9,7 @@ function loadLib() {
   if (!libP) {
     libP = new Promise((res, rej) => {
       const s = document.createElement('script');
-      s.src = 'js/vendor/supabase.js?v=12';
+      s.src = 'js/vendor/supabase.js?v=14';
       s.async = true;
       s.onload = () => (window.supabase && window.supabase.createClient ? res(window.supabase) : rej(new Error('lib')));
       s.onerror = () => { libP = null; rej(new Error('lib')); };

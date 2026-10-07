@@ -1,10 +1,10 @@
 // หน้า login 3 ขั้น: รหัสผ่าน (หรือสแกน) → OTP numpad → (ชวนเปิดสแกนครั้งแรก) → resolve
-import { edge, session } from './api.js?v=12';
-import * as bio from './bio.js?v=12';
-import { USER, LOCK, SHIELD, BACKSPACE } from './icons.js?v=12';
-import { esc } from './fmt.js?v=12';
-import { themeToggle } from './theme.js?v=12';
-import { Snd, soundButton } from './sound.js?v=12';
+import { edge, session } from './api.js?v=14';
+import * as bio from './bio.js?v=14';
+import { USER, LOCK, SHIELD, BACKSPACE } from './icons.js?v=14';
+import { esc } from './fmt.js?v=14';
+import { themeToggle } from './theme.js?v=14';
+import { Snd, soundButton } from './sound.js?v=14';
 
 const OTP_LEN = 6;
 
@@ -100,7 +100,7 @@ export function renderAuth(root, { notice } = {}) {
           <button class="key ghost" data-k="none" tabindex="-1" aria-hidden="true"></button>
           <button class="key" data-k="0">0</button>
           <button class="key ghost" data-k="back" aria-label="ลบ">${BACKSPACE}</button></div>
-        <div class="msg ok">กดค้างที่ช่องเพื่อวางรหัสที่คัดลอกจาก LINE</div>
+        <div class="msg ok">แตะช่องเพื่อวางรหัสที่คัดลอกจาก LINE</div>
         <div class="otp-foot"><button class="link plain" data-act="back">← เปลี่ยนบัญชี</button><button class="link" data-act="resend" disabled>ส่งใหม่ใน 60 วิ</button></div>`);
       const dotsEl = c.querySelector('.otp-dots'), pad = c.querySelector('.pad'), paste = c.querySelector('.otp-paste'), rs = c.querySelector('[data-act=resend]');
       const isTouch = matchMedia('(pointer: coarse)').matches;
@@ -142,6 +142,15 @@ export function renderAuth(root, { notice } = {}) {
       // วางรหัส (กดค้างบนมือถือ / Ctrl+V) → เอาเฉพาะตัวเลข 6 หลัก
       const fill = (txt) => { const d = String(txt || '').replace(/\D/g, '').slice(0, OTP_LEN); if (!d) return; code = ''; for (const ch of d) push(ch); paste.value = ''; };
       paste.addEventListener('input', () => fill(paste.value));
+      // แตะช่อง → อ่านคลิปบอร์ด (iOS 16+ ขึ้นปุ่ม "วาง" ของระบบทันที · Android/คอม อาจถามสิทธิ์) · ไม่ได้ → กดค้างวางแบบเดิม
+      c.querySelector('.otp-dots-wrap').addEventListener('click', () => {
+        if (sending || !navigator.clipboard || !navigator.clipboard.readText) { paste.focus(); return; }
+        navigator.clipboard.readText().then((t) => {
+          const d = String(t || '').replace(/\D/g, '');
+          if (d.length >= OTP_LEN) fill(d);
+          else { setMsg(c, 'ยังไม่ได้คัดลอกรหัส OTP — กด "คัดลอก OTP" ใน LINE ก่อนนะคะ', true); paste.focus(); }
+        }).catch(() => paste.focus());
+      });
       paste.addEventListener('paste', (e) => { e.preventDefault(); fill(e.clipboardData?.getData('text')); });
       const onKey = (e) => {
         if (!document.body.contains(c)) { document.removeEventListener('keydown', onKey); return; }
