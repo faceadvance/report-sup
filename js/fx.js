@@ -1,5 +1,5 @@
 // toast + ละอองทอง + เส้นชีพจร
-import { esc } from './fmt.js?v=45';
+import { esc } from './fmt.js?v=46';
 
 export function toast(html, { icon = '✨', err = false, ms = 3800 } = {}) {
   const box = document.getElementById('toasts');
@@ -37,8 +37,8 @@ export function burst(host, n = 16) {
 
 // ════════ เส้นชีพจร (ECG) แบบจอมอนิเตอร์ ════════
 // ปกติ = เส้นตรง · มีเหตุการณ์ → เกิดคลื่นที่ขอบขวาแล้วไหลไปซ้าย (เหตุการณ์ติดกันต่อเป็นขบวน)
-// push(amp, kind): amp = px (บวก = ขึ้น · ลบ = ลง) · kind: 'beat' คลื่นหัวใจ | 'hump' นูนเตี้ย · tone: 0 ปกติ 1 เขียว 2 แดง 3 ส้ม(กำลังโทร)
-// setCalling(n): มีคนกำลังโทร → คลื่นส้มขึ้นลงต่อเนื่องจนวางสายหมด · หลายคน = แรงขึ้น
+// สีเดียวทั้งเส้น (สี accent) · push(amp, kind): amp = px (บวก = ขึ้น · ลบ = ลง) · kind: 'beat' คลื่นหัวใจ | 'hump' นูนเตี้ย
+// setCalling(n): มีคนกำลังโทร → แท่งชีพจร ขึ้น-ลง ความถี่คงที่ (1 แท่ง / 1.2 วิ) สูงตามจำนวนคน · วางสายหมด = เส้นตรง
 // หยุดวาดเองเมื่อเส้นเรียบและไม่มีคิว (ไม่กิน CPU ตอนเงียบ) · แท็บซ่อน = ไม่วาด
 export function createEcg(host) {
   const cv = document.createElement('canvas');
@@ -47,9 +47,11 @@ export function createEcg(host) {
   const ctx = cv.getContext('2d');
   const GAP = 5;                              // ช่องว่างระหว่างคลื่น (px)
   // ความเร็ว: เส้นทั้งจอ = 1 นาทีล่าสุด (เจ้านายกำหนด) · คิวยาว (ช่วงคึก) → เร่ง ×3 ไม่ให้คลื่นค้างคิว
-  const speed = () => Math.max(4, W / 60) * (q.length > 90 ? 3 : 1);
+  const speed = () => Math.max(4, W / 30) * (q.length > 90 ? 3 : 1);   // ทั้งจอ = 30 วินาทีล่าสุด
+  const HUM_SHAPE = [0, .55, 1, .2, -.65, -1, -.4, 0];   // แท่งชีพจร: ขึ้นแล้วลง (ขึ้น/ลงไม่มีความหมายแยก)
+  const humEvery = () => Math.max(16, Math.round(Math.max(4, W / 30) * 1.2));   // ความถี่คงที่ 1 แท่ง / 1.2 วิ (จอแคบขั้นต่ำ 16px)
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let W = 0, H = 0, dpr = 1, y = [], tone = [], q = [], raf = 0, last = 0, acc = 0, moved = 0, active = true, col = null, hum = 0, phase = 0;
+  let W = 0, H = 0, dpr = 1, y = [], tone = [], q = [], raf = 0, last = 0, acc = 0, moved = 0, active = true, col = null, hum = 0, phase = 0;   // phase = ตำแหน่งในรอบแท่งชีพจร
 
   function colors() {
     const cs = getComputedStyle(host);
@@ -84,7 +86,7 @@ export function createEcg(host) {
       if (!y[k] && !y[k - 1]) continue;
       let e = k; const t = tone[k];
       while (e < W && (y[e] || y[e - 1]) && tone[e] === t) e++;
-      ctx.strokeStyle = col[t]; ctx.beginPath(); ctx.moveTo(k - 1, Y(k - 1));
+      ctx.strokeStyle = col[0]; ctx.beginPath();   // สีเดียว ctx.moveTo(k - 1, Y(k - 1));
       for (let m = k; m < e; m++) ctx.lineTo(m, Y(m));
       ctx.stroke(); k = e - 1;
     }
@@ -100,7 +102,7 @@ export function createEcg(host) {
       n = Math.min(n, W);
       const add = q.splice(0, n);
       while (add.length < n) {   // ไม่มีเหตุการณ์ → มีคนกำลังโทร = คลื่นส้มต่อเนื่อง (แรงตามจำนวนคน) · ไม่มี = เส้นตรง
-        if (hum) { phase += Math.PI * 2 / 34; add.push([hum * Math.sin(phase) || 0.0001, 3]); } else { phase = 0; add.push([0, 0]); }
+        if (hum) { const v = phase < HUM_SHAPE.length ? hum * HUM_SHAPE[phase] : 0; add.push([v || (phase < HUM_SHAPE.length ? 0.0001 : 0), 0]); phase = (phase + 1) % humEvery(); } else { phase = 0; add.push([0, 0]); }
       }
       y.splice(0, n); tone.splice(0, n);
       for (const [v, c] of add) { y.push(v); tone.push(c); }
