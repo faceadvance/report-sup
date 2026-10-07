@@ -1,5 +1,5 @@
 // toast + ละอองทอง + เส้นชีพจร
-import { esc } from './fmt.js?v=41';
+import { esc } from './fmt.js?v=42';
 
 export function toast(html, { icon = '✨', err = false, ms = 3800 } = {}) {
   const box = document.getElementById('toasts');
@@ -44,9 +44,11 @@ export function createEcg(host) {
   cv.setAttribute('aria-hidden', 'true');
   host.replaceChildren(cv);
   const ctx = cv.getContext('2d');
-  const SPEED = 70, GAP = 5;                 // px/วินาที · ช่องว่างระหว่างคลื่น
+  const GAP = 5;                              // ช่องว่างระหว่างคลื่น (px)
+  // ความเร็ว: เส้นทั้งจอ = ราว 2.5 นาทีล่าสุด (สายเข้าเฉลี่ย ~1-2 ครั้ง/นาที/ทีม → เห็นหลายคลื่นพร้อมกัน) · คิวยาว (ช่วงคึก) → เร่ง ×3 ไม่ให้คลื่นค้างคิว
+  const speed = () => Math.max(6, Math.min(14, W / 150)) * (q.length > 90 ? 3 : 1);
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let W = 0, H = 0, dpr = 1, y = [], tone = [], q = [], raf = 0, last = 0, acc = 0, active = true, col = null;
+  let W = 0, H = 0, dpr = 1, y = [], tone = [], q = [], raf = 0, last = 0, acc = 0, moved = 0, active = true, col = null;
 
   function colors() {
     const cs = getComputedStyle(host);
@@ -67,6 +69,7 @@ export function createEcg(host) {
     if (!W) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
+    ctx.translate(-acc, 0);   // เลื่อนเศษพิกเซล → วิ่งลื่นแม้ความเร็วต่ำ
     const mid = H / 2, cap = mid - 1.5;
     const Y = (k) => mid - Math.max(-cap, Math.min(cap, y[k]));
     ctx.lineJoin = 'round'; ctx.lineCap = 'round';
@@ -90,7 +93,7 @@ export function createEcg(host) {
     raf = 0;
     if (document.hidden) { last = 0; return; }
     const dt = last ? Math.min(.1, (t - last) / 1000) : 0; last = t;
-    acc += dt * SPEED;
+    const mv = dt * speed(); acc += mv; moved += mv;
     let n = Math.floor(acc); acc -= n;
     if (n > 0) {
       n = Math.min(n, W);
@@ -98,8 +101,8 @@ export function createEcg(host) {
       while (add.length < n) add.push([0, 0]);
       y.splice(0, n); tone.splice(0, n);
       for (const [v, c] of add) { y.push(v); tone.push(c); }
-      draw();
     }
+    if (moved >= .34) { moved = 0; draw(); }   // วาดเมื่อขยับ ≥ 1/3 px (ประหยัดเครื่อง · ยังลื่น)
     if (idle()) { last = 0; acc = 0; return; }
     raf = requestAnimationFrame(frame);
   }
