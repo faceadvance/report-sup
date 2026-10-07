@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "36";
+  --build: "37";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -488,6 +488,8 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
 @media (max-width: 600px) { .who-me { display: none; } .top-row { gap: .45rem; } }
 /* ตารางแคมเปญแบบการ์ด 4 ช่อง (มือถือ + จอกลางที่ยังไม่ใช้ตาราง) */
 @media (max-width: 1039px) {
+  .emp .tt-row { flex-direction: row; align-items: baseline; gap: .4rem; }
+  .emp .tt-d { order: -1; background: none; padding: 0; font-size: .74rem; }   /* +mm:ss หน้าค่า · ไม่มีพื้นหลัง */
   .crow { padding: .8rem 0; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem .5rem;
     grid-template-areas: "name name name name" "list uniq calls ans" "orders aov sales con"; }
   .crow .c-line { display: contents; }
