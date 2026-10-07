@@ -30,13 +30,18 @@ function deltaHtml(cur, prev) {
 }
 function paintDelta(el, h, k, full) {
   if (!el) return;
-  if (!h || !isLiveRef()) { el.textContent = ''; el.className = el.className.split(' ')[0]; return; }
+  if (!h || !isLiveRef()) { el.textContent = ''; el.dataset.key = ''; el.className = el.className.split(' ')[0]; return; }
   const cur = h.cur[k] || 0, prev = h.prev[k] || 0;
-  if (!cur && !prev && !full) { el.textContent = ''; el.className = el.className.split(' ')[0]; return; }
+  if (!cur && !prev && !full) { el.textContent = ''; el.dataset.key = ''; el.className = el.className.split(' ')[0]; return; }
   const [cls, txt] = deltaHtml(cur, prev);
   const base = el.className.split(' ')[0];
-  const next = full ? `${txt} · ชม.นี้ ${int(cur)} / ก่อน ${int(prev)}` : txt;
-  if (el.textContent !== next) { el.textContent = next; el.className = `${base} ${cls} pop`; setTimeout(() => el.classList.remove('pop'), 500); }
+  const key = `${txt}|${cur}|${prev}`;
+  if (el.dataset.key !== key) {
+    el.dataset.key = key;
+    if (full) el.innerHTML = `<b>${txt}</b><span>ชม.นี้ ${int(cur)} · ก่อน ${int(prev)}</span>`;
+    else el.textContent = txt;
+    el.className = `${base} ${cls} pop`; setTimeout(() => el.classList.remove('pop'), 500);
+  }
   el.title = `ชั่วโมงนี้ ${int(cur)} · ชั่วโมงก่อน ${int(prev)}`;
 }
 let isLiveRef = () => false;
