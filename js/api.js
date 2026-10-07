@@ -15,6 +15,13 @@ export const session = {
 };
 
 export class AuthError extends Error {}
+// AbortSignal.timeout ไม่มีใน iOS < 16 → ทำเอง
+function timeoutSignal(ms) {
+  if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) return AbortSignal.timeout(ms);
+  const c = new AbortController();
+  setTimeout(() => c.abort(), ms);
+  return c.signal;
+}
 const expire = (why) => {
   session.clear();
   window.dispatchEvent(new CustomEvent('sl:auth-expired', { detail: why }));
@@ -27,7 +34,7 @@ export async function edge(action, body = {}) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, ...body }),
-      signal: AbortSignal.timeout(20000),
+      signal: timeoutSignal(20000),
     });
     const j = await r.json().catch(() => null);
     return j || { ok: false, error: 'ระบบขัดข้อง ลองใหม่อีกครั้ง' };
@@ -46,7 +53,7 @@ export async function rpc(fn, args = {}) {
       method: 'POST',
       headers: { apikey: SB_KEY, Authorization: `Bearer ${s.token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(args),
-      signal: AbortSignal.timeout(20000),
+      signal: timeoutSignal(20000),
     });
   } catch (e) {
     throw new Error('network');

@@ -23,6 +23,23 @@
 </head>
 <body>
   <div id="app" aria-live="polite"></div>
+  <script>
+    // ตาข่ายกันจอว่าง: JS โหลดไม่ขึ้น/เบราว์เซอร์เก่า → แสดงข้อความ + ปุ่มลองใหม่ แทนหน้าขาว
+    (function () {
+      function fail(why) {
+        var a = document.getElementById('app');
+        if (!a || a.children.length) return;
+        a.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;font-family:-apple-system,system-ui,sans-serif">' +
+          '<div><div style="font-size:28px;font-weight:700;margin-bottom:8px">Sup Live</div>' +
+          '<p style="color:#6e6e73;margin:0 0 18px;line-height:1.6">โหลดหน้าเว็บไม่สำเร็จ<br>ลองใหม่อีกครั้ง หรือเปิดด้วย Safari / Chrome เวอร์ชันล่าสุด</p>' +
+          '<button onclick="location.reload()" style="border:0;border-radius:999px;padding:12px 28px;font-size:16px;font-weight:600;color:#fff;background:#0071e3">ลองใหม่</button>' +
+          '<p style="color:#86868b;font-size:12px;margin-top:16px">' + (why || '') + '</p></div></div>';
+      }
+      window.addEventListener('error', function (e) { setTimeout(function () { fail(e && e.message ? String(e.message).slice(0, 120) : ''); }, 300); });
+      setTimeout(function () { fail('timeout'); }, 9000);
+    })();
+  </script>
+  <script nomodule>document.getElementById('app').innerHTML = '<p style="padding:40px;text-align:center;font-family:sans-serif">เบราว์เซอร์นี้เก่าเกินไป กรุณาอัปเดต Safari / Chrome</p>';</script>
   <div id="toasts" class="toasts" aria-live="polite"></div>
   <noscript>Sup Live ต้องเปิด JavaScript</noscript>
   <script type="module" src="js/app.js"></script>

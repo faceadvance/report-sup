@@ -67,7 +67,7 @@ html.swap, html.swap *, html.swap *::before, html.swap *::after { transition: ba
 
 /* ════════ สวิตช์ธีม + ปุ่มเสียง (แบบ stock-live) ════════ */
 .toolbar { display: flex; align-items: center; gap: 8px; }
-.tg { position: relative; width: 84px; height: 40px; padding: 0; border-radius: 999px; border: 1px solid var(--line); background: color-mix(in srgb, var(--card-solid) 55%, transparent); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); box-shadow: 0 8px 24px #0000001a, inset 0 1px 0 #ffffff80; cursor: pointer; display: flex; align-items: center; flex: none; }
+.tg { position: relative; width: 84px; height: 40px; padding: 0; border-radius: 999px; border: 1px solid var(--line); background: var(--card-solid); background: color-mix(in srgb, var(--card-solid) 55%, transparent); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); box-shadow: 0 8px 24px #0000001a, inset 0 1px 0 #ffffff80; cursor: pointer; display: flex; align-items: center; flex: none; }
 html.dark .tg { box-shadow: 0 8px 24px #0006, inset 0 1px 0 #ffffff14; }
 .tg .knob { position: absolute; top: 3px; left: 3px; width: 40px; height: 32px; border-radius: 999px; background: #fff; box-shadow: 0 2px 8px #0000002a; transition: transform .5s var(--spring); }
 html.dark .tg .knob { background: #3a3a3c; transform: translateX(38px); }
@@ -78,7 +78,7 @@ html.dark .tg .ic-sun { color: var(--sub); transform: rotate(-90deg) scale(.85);
 .tg .ic-moon { transform: rotate(30deg) scale(.85); }
 html.dark .tg .ic-moon { color: #ffd60a; transform: none; }
 .tg:active .knob { width: 46px; }
-.snd { position: relative; width: 40px; height: 40px; flex: none; border-radius: 50%; border: 1px solid var(--line); background: color-mix(in srgb, var(--card-solid) 55%, transparent); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); box-shadow: 0 8px 24px #0000001a, inset 0 1px 0 #ffffff80; color: var(--ink); cursor: pointer; display: grid; place-items: center; transition: transform .2s var(--spring); }
+.snd { position: relative; width: 40px; height: 40px; flex: none; border-radius: 50%; border: 1px solid var(--line); background: var(--card-solid); background: color-mix(in srgb, var(--card-solid) 55%, transparent); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); box-shadow: 0 8px 24px #0000001a, inset 0 1px 0 #ffffff80; color: var(--ink); cursor: pointer; display: grid; place-items: center; transition: transform .2s var(--spring); }
 html.dark .snd { box-shadow: 0 8px 24px #0006, inset 0 1px 0 #ffffff14; }
 .snd:active { transform: scale(.9); }
 .snd svg { position: absolute; transition: opacity .25s, transform .35s var(--spring); }
@@ -165,7 +165,7 @@ html.dark .key { box-shadow: none; }
 
 /* ════════ APP SHELL ════════ */
 .app { position: relative; max-width: 1240px; margin: 0 auto; padding: 0 1rem calc(3rem + var(--safe-b)); }
-.top { position: sticky; top: 0; z-index: 40; margin: 0 calc(50% - 50vw); padding: calc(.6rem + var(--safe-t)) calc(50vw - 50% + 1rem) .6rem; background: color-mix(in srgb, var(--bg) 72%, transparent); backdrop-filter: saturate(1.8) blur(20px); -webkit-backdrop-filter: saturate(1.8) blur(20px); border-bottom: 1px solid var(--line); }
+.top { position: sticky; top: 0; z-index: 40; margin: 0 calc(50% - 50vw); padding: calc(.6rem + var(--safe-t)) calc(50vw - 50% + 1rem) .6rem; background: var(--bg); background: color-mix(in srgb, var(--bg) 72%, transparent); backdrop-filter: saturate(1.8) blur(20px); -webkit-backdrop-filter: saturate(1.8) blur(20px); border-bottom: 1px solid var(--line); }
 .top-row { display: flex; align-items: center; gap: .55rem; }
 .logo { display: flex; align-items: center; gap: .5rem; text-decoration: none; color: inherit; min-width: 0; }
 .logo .lm { flex: none; display: grid; place-items: center; }
@@ -173,7 +173,7 @@ html.dark .key { box-shadow: none; }
 .logo .wordmark { font-size: 1.15rem; letter-spacing: -.02em; }
 .top-spacer { flex: 1; }
 .who-me { font-size: .82rem; color: var(--sub); max-width: 10rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.icon-btn { width: 40px; height: 40px; flex: none; border-radius: 50%; border: 1px solid var(--line); background: color-mix(in srgb, var(--card-solid) 55%, transparent); display: grid; place-items: center; cursor: pointer; color: var(--ink); transition: transform .2s var(--spring); }
+.icon-btn { width: 40px; height: 40px; flex: none; border-radius: 50%; border: 1px solid var(--line); background: var(--card-solid); background: color-mix(in srgb, var(--card-solid) 55%, transparent); display: grid; place-items: center; cursor: pointer; color: var(--ink); transition: transform .2s var(--spring); }
 .icon-btn:active { transform: scale(.9); }
 .icon-btn:disabled { opacity: .35; cursor: default; }
 .icon-btn svg { width: 1.05rem; height: 1.05rem; }
@@ -408,7 +408,7 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
   .summary { grid-template-columns: repeat(6, 1fr); gap: .8rem; }
   .kpi .v { font-size: 2.2rem; }
   :root { --cols: minmax(15rem, 2.4fr) repeat(7, minmax(4.8rem, 1fr)) 2.2rem; }
-  .thead { display: grid; grid-template-columns: var(--cols); gap: 0 .6rem; padding: .6rem 1.2rem; position: sticky; top: calc(4.05rem + var(--safe-t)); z-index: 20; font-size: .76rem; font-weight: 500; color: var(--sub); background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); margin: 0 0 .5rem; border-radius: 12px; }
+  .thead { display: grid; grid-template-columns: var(--cols); gap: 0 .6rem; padding: .6rem 1.2rem; position: sticky; top: calc(4.05rem + var(--safe-t)); z-index: 20; font-size: .76rem; font-weight: 500; color: var(--sub); background: var(--bg); background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); margin: 0 0 .5rem; border-radius: 12px; }
   .thead span { text-align: right; white-space: nowrap; }
   .thead span:first-child, .thead span.l { text-align: left; }
   .list { gap: .5rem; }
