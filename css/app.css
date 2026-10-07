@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "38";
+  --build: "39";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -219,6 +219,7 @@ html.dark .seg .ind { background: #636366; box-shadow: none; }
 .seg.team button .tdot { width: .5rem; height: .5rem; border-radius: 50%; background: var(--c, var(--accent)); }
 
 .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: .65rem; margin-bottom: 1.6rem; }
+.kpi.k-sales { grid-column: 1 / -1; order: 1; }   /* แท็บเล็ต/มือถือ: การ์ด 7 ใบ → ยอดขายเต็มแถวปิดท้าย */
 .kpi { position: relative; padding: 1rem 1rem .9rem; border-radius: var(--r-lg); background: var(--card); backdrop-filter: blur(20px) saturate(1.6); -webkit-backdrop-filter: blur(20px) saturate(1.6); border: 1px solid var(--line); box-shadow: var(--shadow); animation: rise .6s var(--ease) both; min-width: 0; }
 .kpi label { display: block; font-size: .8rem; color: var(--sub); font-weight: 500; }
 .kpi .v { display: block; font-weight: 700; font-size: clamp(1.45rem, 6vw, 2.1rem); letter-spacing: -.02em; margin-top: .2rem; }
@@ -423,7 +424,8 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
   .app { padding: 0 1.6rem 3.5rem; }
   .top { padding-left: calc(50vw - 50% + 1.6rem); padding-right: calc(50vw - 50% + 1.6rem); }
   .hero { padding-top: 2.6rem; }
-  .summary { grid-template-columns: repeat(6, 1fr); gap: .8rem; }
+  .summary { grid-template-columns: repeat(4, 1fr); gap: .8rem; }
+  .kpi.k-sales { grid-column: span 2; order: 0; }   /* คอม: 4+3 → แถว 2 = AOV · ยอดขาย(กว้าง 2) · Con% */
   .kpi .v { font-size: 2.2rem; }
   :root { --cols: 2.9rem minmax(7.5rem, 1.5fr) minmax(5.8rem, 6.6rem) repeat(8, minmax(3.9rem, 1fr)); --cgap: 1.1rem; }
   .thead { display: grid; grid-template-columns: var(--cols); gap: 0 var(--cgap); padding: .6rem 3.4rem .6rem 1.2rem; position: sticky; top: calc(4.05rem + var(--safe-t)); z-index: 20; font-size: .76rem; font-weight: 500; color: var(--sub); background: var(--bg); background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); margin: 0 0 .5rem; border-radius: 12px; }
@@ -577,3 +579,11 @@ html.sl-safe .auth { overflow: visible !important; position: static !important; 
   .emp-head .m .v { font-size: 1rem; }
   .vrow .dl { min-width: 1.9rem; }
 }
+
+/* การ์ดรวม 7 ใบ: ตัวเลขย่อตามความกว้างการ์ด (ยอดขายหลายวันอาจถึงหลักล้าน) · คำอธิบายตัดบรรทัดได้ ไม่ตัดเป็น … */
+@supports (container-type: inline-size) {
+  .kpi { container-type: inline-size; }
+  .kpi .v { font-size: min(2.2rem, 20cqi); }
+}
+.kpi small { white-space: normal; overflow: visible; line-height: 1.35; }
+.kpi.k-sales .kd { flex-direction: row; gap: .4rem; }   /* การ์ดกว้าง → +฿ กับคำอธิบายอยู่บรรทัดเดียว */

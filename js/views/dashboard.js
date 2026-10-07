@@ -1,15 +1,15 @@
 // หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
-import { rpc, session, AuthError } from '../api.js?v=38';
-import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=38';
-import { Odo } from '../odometer.js?v=38';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=38';
-import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=38';
-import { createLive } from '../live.js?v=38';
-import { pickRange } from '../calendar.js?v=38';
-import { toast, toastText, burst, pulseSvg, beat } from '../fx.js?v=38';
-import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=38';
-import { themeToggle, ping } from '../theme.js?v=38';
-import { Snd, soundButton } from '../sound.js?v=38';
+import { rpc, session, AuthError } from '../api.js?v=39';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=39';
+import { Odo } from '../odometer.js?v=39';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=39';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=39';
+import { createLive } from '../live.js?v=39';
+import { pickRange } from '../calendar.js?v=39';
+import { toast, toastText, burst, pulseSvg, beat } from '../fx.js?v=39';
+import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=39';
+import { themeToggle, ping } from '../theme.js?v=39';
+import { Snd, soundButton } from '../sound.js?v=39';
 
 const METRICS = [
   ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],
@@ -23,6 +23,7 @@ const text = {
   aov: (v) => (v === null ? '—' : money(v)), sales: (v) => money(v || 0), con: (v) => (v === null ? '—' : pct(v)),
 };
 const HK = { calls: 'calls', ans: 'answered', uniq: 'uniq', orders: 'orders' };
+const SUM_HK = { ...HK, sales: 'sales' };   // การ์ดรวมมี +฿ ยอดขายชั่วโมงนี้ด้วย (แถวรายคนไม่มี — คอลัมน์แคบ)
 // +n = ชั่วโมงนี้เพิ่มขึ้นเท่าไหร่ (ตั้งแต่ HH:00 · Live เท่านั้น)
 function paintDelta(el, h, k, full, hourLabel) {
   if (!el) return;
@@ -79,8 +80,8 @@ export function mountDashboard(root, me, { onLogout }) {
         <button data-mode="today">วันนี้</button><button data-mode="yesterday">เมื่อวาน</button><button data-mode="range">${CAL} <span>เลือกช่วง</span></button></div>
     </section>
     <section class="summary">
-      ${[['calls', 'สายโทร', 'k-call'], ['ans', 'รับสาย', ''], ['uniq', 'ชื่อที่โทร', ''], ['orders', 'ออเดอร์', 'k-ord'], ['aov', 'AOV (บาท)', ''], ['con', 'Con%', 'k-con']]
-        .map(([k, l, c], i) => `<div class="kpi ${c}" style="animation-delay:${i * 60}ms"><label>${l}</label><span class="v" data-k="${k}"></span><small data-sub="${k}">&nbsp;</small>${HK[k] ? `<span class="kd" data-kd="${k}"></span>` : ''}</div>`).join('')}
+      ${[['calls', 'สายโทร', 'k-call'], ['ans', 'รับสาย', ''], ['uniq', 'ชื่อที่โทร', ''], ['orders', 'ออเดอร์', 'k-ord'], ['aov', 'AOV (บาท)', ''], ['sales', 'ยอดขาย (บาท)', 'k-sales'], ['con', 'Con%', 'k-con']]
+        .map(([k, l, c], i) => `<div class="kpi ${c}" style="animation-delay:${i * 60}ms"><label>${l}</label><span class="v" data-k="${k}"></span><small data-sub="${k}">&nbsp;</small>${SUM_HK[k] ? `<span class="kd" data-kd="${k}"></span>` : ''}</div>`).join('')}
     </section>
     <div class="listbar"><h3>ลูกทีม<span class="cnt"></span></h3>
       <div class="sorter" role="group" aria-label="เรียงตาม"><span>เรียง</span>
@@ -380,16 +381,17 @@ export function mountDashboard(root, me, { onLogout }) {
 
   function renderSummary(animate) {
     const s = teamSummary(S.idx, S.members);
-    const cur = { calls: s.calls, ans: s.answered, uniq: s.uniq, orders: s.orders, aov: s.aov, con: s.con };
+    const cur = { calls: s.calls, ans: s.answered, uniq: s.uniq, orders: s.orders, aov: s.aov, sales: s.sales_sum, con: s.con };
     for (const k of Object.keys(cur)) {
       const dir = animate && sumPrev ? sign(sumPrev[k], cur[k]) : 0;
-      sumOdo[k].set(k === 'aov' ? (cur[k] === null ? '—' : money(cur[k])) : k === 'con' ? (cur[k] === null ? '—' : pct(cur[k])) : int(cur[k]), { dir });
+      sumOdo[k].set(k === 'aov' || k === 'sales' ? (cur[k] === null ? '—' : money(cur[k])) : k === 'con' ? (cur[k] === null ? '—' : pct(cur[k])) : int(cur[k]), { dir });
     }
     const onCnt = isLive() ? S.members.filter((m) => workState(S.att, m.emp, S.today).s === 'on').length : null;
     sumSub.calls.textContent = onCnt === null ? `${S.members.length} คนในทีม` : `ทำงานอยู่ ${onCnt}/${S.members.length} คน`;
     sumSub.ans.textContent = s.calls ? `อัตรารับ ${pct((s.answered / s.calls) * 100)}` : ' ';
     sumSub.uniq.textContent = s.list !== null ? `รายชื่อถือครอง ${int(s.list)}` : 'รายชื่อ —';
-    sumSub.orders.textContent = `ยอด ${money(s.sales_sum)} ฿`;
+    sumSub.orders.textContent = `ปิดได้ ${s.closers}/${S.members.length} คน`;
+    sumSub.sales.textContent = S.members.length ? `เฉลี่ย ${money(s.sales_sum / S.members.length)} ฿/คน` : ' ';
     sumSub.aov.textContent = 'ต่อออเดอร์ (ไม่นับ 0 บาท)';
     sumSub.con.textContent = 'ออเดอร์ ÷ ชื่อที่โทร';
     sumPrev = cur;
@@ -398,7 +400,7 @@ export function mountDashboard(root, me, { onLogout }) {
   function renderTeamDelta() {
     const live = isLive() && S.hr.cur_hour;
     const t = live ? teamHourly(S.hr, S.members) : null;
-    for (const k of Object.keys(HK)) paintDelta(sumKd[k], t, HK[k], true, S.hr.cur_hour);
+    for (const k of Object.keys(SUM_HK)) paintDelta(sumKd[k], t, SUM_HK[k], true, S.hr.cur_hour);
   }
 
   function skeleton() {

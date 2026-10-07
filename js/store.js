@@ -1,5 +1,5 @@
 // คำนวณ/จัดเก็บข้อมูล — ฟังก์ชันล้วน (เทสด้วย node ได้)
-import { TOTAL } from './config.js?v=38';
+import { TOTAL } from './config.js?v=39';
 
 export function derive(r) {
   const orders = r.orders || 0, uniq = r.uniq || 0, sales = Number(r.sales_sum || 0);
@@ -25,10 +25,11 @@ export const get = (idx, emp, camp = TOTAL) => (idx.get(emp) || {})[camp] || EMP
 
 // รวมทั้งทีม · ชื่อที่โทร = ผลรวมต่อคน (เบอร์เดียวกันข้ามพนักงานนับแยก)
 export function teamSummary(idx, members) {
-  const s = { calls: 0, answered: 0, uniq: 0, orders: 0, sales_sum: 0, list: null };
+  const s = { calls: 0, answered: 0, uniq: 0, orders: 0, sales_sum: 0, list: null, closers: 0 };
   for (const m of members) {
     const t = get(idx, m.emp);
     s.calls += t.calls; s.answered += t.answered; s.uniq += t.uniq; s.orders += t.orders; s.sales_sum += t.sales_sum;
+    if (t.orders > 0) s.closers++;
     if (t.list_last !== null) s.list = (s.list || 0) + t.list_last;
   }
   s.aov = s.orders > 0 ? s.sales_sum / s.orders : null;
@@ -81,7 +82,7 @@ export function workState(att, emp, today) {
 }
 
 // ชั่วโมงนี้ vs ชั่วโมงก่อน (sup_hourly) → { cur_hour, prev_hour, map: Map emp → {cur, prev} }
-const HKEYS = ['calls', 'answered', 'uniq', 'orders', 'talk'];
+const HKEYS = ['calls', 'answered', 'uniq', 'orders', 'sales', 'talk'];
 export function indexHourly(j) {
   // map: emp → { cur, prev (รวม), camp: { ชื่อแคมเปญ: { cur, prev } } }
   const map = new Map();
