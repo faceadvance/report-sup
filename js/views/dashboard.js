@@ -1,15 +1,15 @@
 // หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
-import { rpc, session, AuthError } from '../api.js?v=50';
-import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=50';
-import { Odo } from '../odometer.js?v=50';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=50';
-import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=50';
-import { createLive } from '../live.js?v=50';
-import { pickRange } from '../calendar.js?v=50';
-import { toast, toastText, burst, createEcg } from '../fx.js?v=50';
-import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=50';
-import { themeToggle, ping } from '../theme.js?v=50';
-import { Snd, soundButton } from '../sound.js?v=50';
+import { rpc, session, AuthError } from '../api.js?v=51';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=51';
+import { Odo } from '../odometer.js?v=51';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=51';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=51';
+import { createLive } from '../live.js?v=51';
+import { pickRange } from '../calendar.js?v=51';
+import { toast, toastText, burst, createEcg } from '../fx.js?v=51';
+import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=51';
+import { themeToggle, ping } from '../theme.js?v=51';
+import { Snd, soundButton } from '../sound.js?v=51';
 
 const METRICS = [
   ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],
@@ -57,6 +57,8 @@ export function mountDashboard(root, me, { onLogout }) {
     hr: indexHourly(null), hour: null,
     calling: new Map(),   // emp → { since: ms, camp } · เฉพาะ Live วันนี้
   };
+  const callAlerted = new Map();   // emp → รอบ 10 นาทีที่เตือนไปแล้ว
+  const markCallSeen = (emp, since) => { if (!callAlerted.has(emp)) callAlerted.set(emp, Math.floor((Date.now() - since) / 600000)); };
   const savedTeam = Number(localStorage.getItem('sl_team'));
   if (me.teams.some((t) => t.id === savedTeam)) S.team = savedTeam;
   const minDay = () => S.me.start_date || addDays(S.today, -60);
@@ -449,6 +451,7 @@ export function mountDashboard(root, me, { onLogout }) {
       if (my !== S.seq) return;
       S.hr = indexHourly(hr); S.hour = hr && hr.clock_hour;
       S.calling = new Map((cl || []).map((r) => [r.emp, { since: Date.parse(r.since) || Date.now(), camp: r.camp || null }]));
+      for (const [emp, c] of S.calling) markCallSeen(emp, c.since);
       ecg.setCalling(isLive() ? S.calling.size : 0);
       const firstPaint = !S.rows.size;
       if (firstPaint) list.innerHTML = '';
@@ -530,7 +533,7 @@ export function mountDashboard(root, me, { onLogout }) {
     onSignal,
     onCall: (p) => {
       if (!isLive()) return;
-      if (p.c) { S.calling.set(p.emp, { since: Date.parse(p.since) || Date.now(), camp: p.camp || null }); ecg.push(3); } else S.calling.delete(p.emp);   // เริ่มโทร = กระตุกเล็ก
+      if (p.c) { S.calling.set(p.emp, { since: Date.parse(p.since) || Date.now(), camp: p.camp || null }); callAlerted.delete(p.emp); markCallSeen(p.emp, S.calling.get(p.emp).since); ecg.push(3); } else { S.calling.delete(p.emp); callAlerted.delete(p.emp); }   // เริ่มโทร = กระตุกเล็ก
       ecg.setCalling(S.calling.size);
       S.rows.get(p.emp)?.updateCall();
     },
@@ -584,6 +587,26 @@ export function mountDashboard(root, me, { onLogout }) {
   });
   $('[data-act=logout]').addEventListener('click', () => { live.stop(); onLogout(); });
 
+  // ⏰ เตือนโทรนาน: ครบทุก 10 นาทีของแต่ละสาย (10, 20, 30 …) → เสียง + สั่น (เครื่องที่รองรับ) + แจ้งเตือนชื่อ
+  //    เปิดหน้ามาเจอสายที่คุยอยู่แล้ว = เริ่มนับจากรอบถัดไป (ไม่เตือนย้อนหลังรัว ๆ) · วางสาย = ล้าง
+  function checkLongCalls() {
+    for (const emp of callAlerted.keys()) if (!S.calling.has(emp)) callAlerted.delete(emp);
+    const due = [];
+    for (const [emp, c] of S.calling) {
+      const step = Math.floor((Date.now() - c.since) / 600000);
+      if (!callAlerted.has(emp)) callAlerted.set(emp, step);   // กันพลาด (ปกติตั้งไว้แล้วตอนเห็นสายครั้งแรก)
+      if (step > callAlerted.get(emp) && step >= 1) { callAlerted.set(emp, step); due.push([emp, step * 10]); }
+    }
+    if (!due.length) return;
+    Snd.longCall();
+    try { navigator.vibrate?.([220, 120, 220, 120, 380]); } catch { /* บางเครื่องไม่ให้สั่น */ }
+    for (const [emp, min] of due.slice(0, 3)) {
+      const row = S.rows.get(emp);
+      toast(`<b>${esc(emp)}</b> ${esc(row?.m.name || '')} กำลังโทรนาน <b>${min} นาที</b>`, { icon: '⏰', ms: 6000 });
+      if (row) { row.el.classList.remove('alarm'); void row.el.offsetWidth; row.el.classList.add('alarm'); setTimeout(() => row.el.classList.remove('alarm'), 1300); }   // การ์ดพนักงานสั่น
+    }
+  }
+
   // ข้ามเที่ยงคืน + อัปเดตเวลา "โทรล่าสุด"
   const clock = setInterval(() => {
     const t = todayISO();
@@ -598,6 +621,7 @@ export function mountDashboard(root, me, { onLogout }) {
       if (hh !== S.hour) { loadAll(); return; }
     }
     if (isLive() && !multi()) for (const row of S.rows.values()) row.updateTime();
+    if (isLive()) checkLongCalls();
   }, 30000);
 
   // ดึงลงเพื่อรีเฟรช (มือถือ)

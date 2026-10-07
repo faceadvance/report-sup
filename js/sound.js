@@ -61,6 +61,8 @@ export const Snd = {
   fail() { if (this.bufs.fail) return this.sample('fail', 0, .55); this.tone(220, 0, .16, { type: 'square', vol: .06, to: 180 }); this.tone(196, .2, .22, { type: 'square', vol: .06, to: 150 }); },
   ping() { if (this.bufs.ping) return this.sample('ping', 0, .45); this.tone(1318.5, 0, .35, { vol: .07 }); this.tone(1760, .06, .4, { vol: .05 }); },
   toggle() { if (this.bufs.toggle) return this.sample('toggle', 0, .55); this.tone(600, 0, .05, { type: 'triangle', vol: .1, to: 900 }); this.tone(900, .05, .05, { type: 'triangle', vol: .08 }); },
+  // เตือนโทรนาน: ติ๊ง 3 ครั้งเสียงสูง (ต่างจากเสียงอื่นชัด)
+  longCall() { [0, .18, .36].forEach((t) => this.tone(1175, t, .14, { type: 'square', vol: .07 })); this.tone(1568, .54, .35, { vol: .09 }); },
   crow(at = 0) { this.sample('rooster', at, 1.5); },   // ดังขึ้น (เจ้านายขอ) · 1.5 × master .66 ≈ เต็มสเกล
   howl(at = 0) { this.sample('wolf', at, 1.5); },
   dusk() { this.tone(440, 0, 1.4, { vol: .07, to: 196, att: .08 }); this.tone(660, .05, 1.3, { vol: .04, to: 294, att: .1 }); this.whoosh(false, 1.2); },
