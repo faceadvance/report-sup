@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "49";
+  --build: "50";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -617,6 +617,12 @@ html.sl-safe .auth { overflow: visible !important; position: static !important; 
 .calling.long { background: #ef4444; }
 html.dark .calling { background: #ff9f0a; color: #1c1c1e; }
 html.dark .calling.long { background: #ff453a; color: #fff; }
+/* ค่อย ๆ จากส้มเป็นแดงตามเวลาที่คุย (--heat 0→1 จาก JS: 5 นาทีแรก 0 · 60 นาที = 1) · เบราว์เซอร์เก่าไม่รองรับ color-mix = ใช้ส้ม/แดงด้านบน */
+@supports (background: color-mix(in srgb, red 50%, blue)) {
+  .calling { background: color-mix(in srgb, #ef4444 calc(var(--heat, 0) * 100%), #f59e0b); }
+  html.dark .calling { background: color-mix(in srgb, #ff453a calc(var(--heat, 0) * 100%), #ff9f0a); }
+  html.dark .calling.hot { color: #fff; }   /* ธีมมืด: พื้นเริ่มแดง → ตัวอักษรขาว (ไม่ไล่เทากลาง ๆ ที่อ่านยาก) */
+}
 @keyframes callPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 @keyframes callShake {   /* แบบ fa-shake */
   0% { transform: rotate(-15deg); } 4% { transform: rotate(15deg); } 8%, 24% { transform: rotate(-18deg); } 12%, 28% { transform: rotate(18deg); }
