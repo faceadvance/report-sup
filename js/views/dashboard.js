@@ -1,15 +1,15 @@
 // หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
-import { rpc, session, AuthError } from '../api.js?v=14';
-import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=14';
-import { Odo } from '../odometer.js?v=14';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=14';
-import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc } from '../fmt.js?v=14';
-import { createLive } from '../live.js?v=14';
-import { pickRange } from '../calendar.js?v=14';
-import { toast, toastText, burst, pulseSvg, beat } from '../fx.js?v=14';
-import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=14';
-import { themeToggle, ping } from '../theme.js?v=14';
-import { Snd, soundButton } from '../sound.js?v=14';
+import { rpc, session, AuthError } from '../api.js?v=15';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=15';
+import { Odo } from '../odometer.js?v=15';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=15';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc } from '../fmt.js?v=15';
+import { createLive } from '../live.js?v=15';
+import { pickRange } from '../calendar.js?v=15';
+import { toast, toastText, burst, pulseSvg, beat } from '../fx.js?v=15';
+import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=15';
+import { themeToggle, ping } from '../theme.js?v=15';
+import { Snd, soundButton } from '../sound.js?v=15';
 
 const METRICS = [
   ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],
@@ -403,7 +403,7 @@ export function mountDashboard(root, me, { onLogout }) {
       const [mem, st, at, hr] = await Promise.all([rpc('sup_team_members', args), rpc('sup_stats', args), rpc('sup_attendance', args),
         isLive() ? rpc('sup_hourly', { p_team: S.team }) : Promise.resolve(null)]);
       if (my !== S.seq) return;
-      S.hr = indexHourly(hr); S.hour = S.hr.cur_hour;
+      S.hr = indexHourly(hr); S.hour = hr && hr.clock_hour;
       const firstPaint = !S.rows.size;
       if (firstPaint) list.innerHTML = '';
       S.members = mem; S.idx = indexStats(st); S.att = indexAtt(at); S.tl.clear();
@@ -442,7 +442,7 @@ export function mountDashboard(root, me, { onLogout }) {
       const [st, at, hr] = await Promise.all([rpc('sup_stats', args), rpc('sup_attendance', args), rpc('sup_hourly', { p_team: S.team, p_emp: emp })]);
       if (my !== S.seq) return;
       if (!S.rows.has(emp)) { loadAll(); return; }      // คนใหม่ในทีม → โหลดทั้งทีม
-      if (hr.cur_hour !== S.hour) { loadAll(); return; } // ข้ามชั่วโมง → โหลดทั้งทีมใหม่ (ฐานเทียบเปลี่ยน)
+      if (hr.clock_hour !== S.hour) { loadAll(); return; } // ข้ามชั่วโมง → โหลดทั้งทีมใหม่ (จุดเริ่มนับเปลี่ยน)
       mergeHourly(S.hr, emp, hr);
       const before = get(S.idx, emp);
       mergeEmp(S.idx, emp, st); mergeAtt(S.att, emp, at);

@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "14";
+  --build: "15";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -243,7 +243,9 @@ html.dark .sorter button[aria-pressed="true"] { background: #636366; }
 .who { grid-area: who; display: flex; align-items: center; gap: .7rem; min-width: 0; }
 .ava { position: relative; width: 2.7rem; height: 2.7rem; flex: none; border-radius: 50%; background: linear-gradient(180deg, #e8e8ed, #d2d2d7); color: #1d1d1f; display: grid; place-items: center; font-weight: 600; font-size: 1rem; }
 html.dark .ava { background: linear-gradient(180deg, #3a3a3c, #2c2c2e); color: #f5f5f7; }
-.ava img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.ava { aspect-ratio: 1; }
+.ava img { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
+.ava .st { z-index: 1; }
 .ava .st { position: absolute; right: -1px; bottom: -1px; width: .82rem; height: .82rem; border-radius: 50%; border: 2px solid var(--card-solid); background: var(--faint); }
 .ava .st[data-s="none"] { background: #c7c7cc; }
 html.dark .ava .st[data-s="none"] { background: #48484a; }
