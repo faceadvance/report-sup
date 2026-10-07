@@ -1,5 +1,5 @@
 // toast + ละอองทอง + เส้นชีพจร
-import { esc } from './fmt.js?v=43';
+import { esc } from './fmt.js?v=44';
 
 export function toast(html, { icon = '✨', err = false, ms = 3800 } = {}) {
   const box = document.getElementById('toasts');
@@ -37,7 +37,8 @@ export function burst(host, n = 16) {
 
 // ════════ เส้นชีพจร (ECG) แบบจอมอนิเตอร์ ════════
 // ปกติ = เส้นตรง · มีเหตุการณ์ → เกิดคลื่นที่ขอบขวาแล้วไหลไปซ้าย (เหตุการณ์ติดกันต่อเป็นขบวน)
-// push(amp, kind): amp = px (บวก = ขึ้น · ลบ = ลง) · kind: 'beat' คลื่นหัวใจ | 'hump' นูนเตี้ย · tone: 0 ปกติ 1 เขียว 2 แดง
+// push(amp, kind): amp = px (บวก = ขึ้น · ลบ = ลง) · kind: 'beat' คลื่นหัวใจ | 'hump' นูนเตี้ย · tone: 0 ปกติ 1 เขียว 2 แดง 3 ส้ม(กำลังโทร)
+// setCalling(n): มีคนกำลังโทร → คลื่นส้มขึ้นลงต่อเนื่องจนวางสายหมด · หลายคน = แรงขึ้น
 // หยุดวาดเองเมื่อเส้นเรียบและไม่มีคิว (ไม่กิน CPU ตอนเงียบ) · แท็บซ่อน = ไม่วาด
 export function createEcg(host) {
   const cv = document.createElement('canvas');
@@ -45,14 +46,14 @@ export function createEcg(host) {
   host.replaceChildren(cv);
   const ctx = cv.getContext('2d');
   const GAP = 5;                              // ช่องว่างระหว่างคลื่น (px)
-  // ความเร็ว: เส้นทั้งจอ = ราว 2.5 นาทีล่าสุด (สายเข้าเฉลี่ย ~1-2 ครั้ง/นาที/ทีม → เห็นหลายคลื่นพร้อมกัน) · คิวยาว (ช่วงคึก) → เร่ง ×3 ไม่ให้คลื่นค้างคิว
-  const speed = () => Math.max(6, Math.min(14, W / 150)) * (q.length > 90 ? 3 : 1);
+  // ความเร็ว: เส้นทั้งจอ = 1 นาทีล่าสุด (เจ้านายกำหนด) · คิวยาว (ช่วงคึก) → เร่ง ×3 ไม่ให้คลื่นค้างคิว
+  const speed = () => Math.max(4, W / 60) * (q.length > 90 ? 3 : 1);
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let W = 0, H = 0, dpr = 1, y = [], tone = [], q = [], raf = 0, last = 0, acc = 0, moved = 0, active = true, col = null;
+  let W = 0, H = 0, dpr = 1, y = [], tone = [], q = [], raf = 0, last = 0, acc = 0, moved = 0, active = true, col = null, hum = 0, phase = 0;
 
   function colors() {
     const cs = getComputedStyle(host);
-    col = [cs.getPropertyValue('--accent').trim() || '#0071e3', cs.getPropertyValue('--up').trim() || '#1a9e4b', cs.getPropertyValue('--down').trim() || '#d70015'];
+    col = [cs.getPropertyValue('--accent').trim() || '#0071e3', cs.getPropertyValue('--up').trim() || '#1a9e4b', cs.getPropertyValue('--down').trim() || '#d70015', document.documentElement.classList.contains('dark') ? '#ff9f0a' : '#f59e0b'];
   }
   function resize() {
     const w = Math.max(1, Math.round(host.clientWidth)), h = Math.max(1, Math.round(host.clientHeight));
@@ -88,7 +89,7 @@ export function createEcg(host) {
       ctx.stroke(); k = e - 1;
     }
   }
-  const idle = () => !q.length && !y.some((v) => v);
+  const idle = () => !hum && !q.length && !y.some((v) => v);
   function frame(t) {
     raf = 0;
     if (document.hidden) { last = 0; return; }
@@ -98,11 +99,13 @@ export function createEcg(host) {
     if (n > 0) {
       n = Math.min(n, W);
       const add = q.splice(0, n);
-      while (add.length < n) add.push([0, 0]);
+      while (add.length < n) {   // ไม่มีเหตุการณ์ → มีคนกำลังโทร = คลื่นส้มต่อเนื่อง (แรงตามจำนวนคน) · ไม่มี = เส้นตรง
+        if (hum) { phase += Math.PI * 2 / 34; add.push([hum * Math.sin(phase) || 0.0001, 3]); } else { phase = 0; add.push([0, 0]); }
+      }
       y.splice(0, n); tone.splice(0, n);
       for (const [v, c] of add) { y.push(v); tone.push(c); }
     }
-    if (moved >= .34) { moved = 0; draw(); }   // วาดเมื่อขยับ ≥ 1/3 px (ประหยัดเครื่อง · ยังลื่น)
+    if (moved >= Math.max(.34, speed() / 30)) { moved = 0; draw(); }   // วาดเมื่อขยับพอ (≤ 30 ครั้ง/วิ · ประหยัดเครื่อง · ยังลื่น)
     if (idle()) { last = 0; acc = 0; return; }
     raf = requestAnimationFrame(frame);
   }
@@ -135,7 +138,9 @@ export function createEcg(host) {
       for (const v of wave(amp, kind)) q.push([v || 0.0001, t]);   // 0.0001 = ยังนับเป็นช่วงคลื่น (สีเข้มต่อเนื่อง)
       kick();
     },
-    setActive(v) { active = v; if (!v) { q = []; y.fill(0); } draw(); },
+    setActive(v) { active = v; if (!v) { q = []; hum = 0; y.fill(0); } draw(); },
+    // จำนวนคนที่กำลังโทรอยู่ → คลื่นต่อเนื่อง 1 คน ≈ 3px … ยิ่งหลายคนยิ่งแรง (สูงสุด 11px)
+    setCalling(n) { const h = active && !reduce && n > 0 ? Math.min(11, 1.8 + n * 1.3) : 0; if (h !== hum) { hum = h; kick(); } },
   };
 }
 export function beat(el) {

@@ -1,15 +1,15 @@
 // หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
-import { rpc, session, AuthError } from '../api.js?v=43';
-import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=43';
-import { Odo } from '../odometer.js?v=43';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=43';
-import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=43';
-import { createLive } from '../live.js?v=43';
-import { pickRange } from '../calendar.js?v=43';
-import { toast, toastText, burst, createEcg } from '../fx.js?v=43';
-import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=43';
-import { themeToggle, ping } from '../theme.js?v=43';
-import { Snd, soundButton } from '../sound.js?v=43';
+import { rpc, session, AuthError } from '../api.js?v=44';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=44';
+import { Odo } from '../odometer.js?v=44';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=44';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=44';
+import { createLive } from '../live.js?v=44';
+import { pickRange } from '../calendar.js?v=44';
+import { toast, toastText, burst, createEcg } from '../fx.js?v=44';
+import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=44';
+import { themeToggle, ping } from '../theme.js?v=44';
+import { Snd, soundButton } from '../sound.js?v=44';
 
 const METRICS = [
   ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],
@@ -447,6 +447,7 @@ export function mountDashboard(root, me, { onLogout }) {
       if (my !== S.seq) return;
       S.hr = indexHourly(hr); S.hour = hr && hr.clock_hour;
       S.calling = new Map((cl || []).map((r) => [r.emp, { since: Date.parse(r.since) || Date.now(), camp: r.camp || null }]));
+      ecg.setCalling(isLive() ? S.calling.size : 0);
       const firstPaint = !S.rows.size;
       if (firstPaint) list.innerHTML = '';
       S.members = mem; S.idx = indexStats(st); S.att = indexAtt(at); S.tl.clear();
@@ -528,6 +529,7 @@ export function mountDashboard(root, me, { onLogout }) {
     onCall: (p) => {
       if (!isLive()) return;
       if (p.c) { S.calling.set(p.emp, { since: Date.parse(p.since) || Date.now(), camp: p.camp || null }); ecg.push(3); } else S.calling.delete(p.emp);   // เริ่มโทร = กระตุกเล็ก
+      ecg.setCalling(S.calling.size);
       S.rows.get(p.emp)?.updateCall();
     },
     onStatus: (s) => {
@@ -538,7 +540,7 @@ export function mountDashboard(root, me, { onLogout }) {
   });
   function setLive() {
     pulse.classList.toggle('history', !isLive());
-    ecg.setActive(isLive());
+    ecg.setActive(isLive()); ecg.setCalling(isLive() ? S.calling.size : 0);
     if (isLive() && S.team !== null) live.watch(S.team); else live.stop();
   }
 

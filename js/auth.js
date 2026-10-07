@@ -1,10 +1,10 @@
 // หน้า login 3 ขั้น: รหัสผ่าน (หรือสแกน) → OTP numpad → (ชวนเปิดสแกนครั้งแรก) → resolve
-import { edge, session } from './api.js?v=43';
-import * as bio from './bio.js?v=43';
-import { USER, LOCK, SHIELD, BACKSPACE } from './icons.js?v=43';
-import { esc } from './fmt.js?v=43';
-import { themeToggle } from './theme.js?v=43';
-import { Snd, soundButton } from './sound.js?v=43';
+import { edge, session } from './api.js?v=44';
+import * as bio from './bio.js?v=44';
+import { USER, LOCK, SHIELD, BACKSPACE } from './icons.js?v=44';
+import { esc } from './fmt.js?v=44';
+import { themeToggle } from './theme.js?v=44';
+import { Snd, soundButton } from './sound.js?v=44';
 
 const OTP_LEN = 6;
 
@@ -13,7 +13,7 @@ export function renderAuth(root, { notice } = {}) {
     root.innerHTML = '';
     const wrap = document.createElement('div');
     wrap.className = 'auth';
-    wrap.innerHTML = '<div class="auth-glow blue"></div><div class="auth-glow gold"></div><div class="auth-dots"></div>';
+    wrap.innerHTML = '<div class="auth-bg"><div class="auth-glow blue"></div><div class="auth-glow gold"></div><div class="auth-dots"></div></div>';   // แสงพื้นหลังแยกชั้น fixed → ไม่ดันให้หน้าเลื่อนได้
     const dots = wrap.querySelector('.auth-dots');
     for (let i = 0; i < 42; i++) {
       const d = document.createElement('i');

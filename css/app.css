@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "43";
+  --build: "44";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -90,7 +90,8 @@ html.muted .snd .s-on { opacity: 0; transform: scale(.6); }
 html.muted .snd .s-off { opacity: 1; transform: none; color: var(--sub); }
 
 /* ════════ AUTH: โครงแบบ MO (แสงโคจร + การ์ดกระจก) ในโทน Apple ════════ */
-.auth { position: fixed; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; overflow: hidden auto; padding: calc(4.5rem + var(--safe-t)) 1rem calc(1.5rem + var(--safe-b)); }
+.auth { position: fixed; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; overflow: hidden auto; overscroll-behavior: none; padding: calc(4.5rem + var(--safe-t)) 1rem calc(1.5rem + var(--safe-b)); }
+.auth-bg { position: fixed; inset: 0; overflow: hidden; pointer-events: none; }
 .auth-tools { position: fixed; top: calc(14px + var(--safe-t)); left: 50%; transform: translateX(-50%); z-index: 5; }
 .auth-glow { position: absolute; top: 50%; left: 50%; border-radius: 50%; pointer-events: none; opacity: .5; }   /* ไม่ใช้ filter:blur (กิน GPU หนักบน iPhone) — gradient นุ่มแทน */
 html.dark .auth-glow { opacity: .75; }
@@ -641,3 +642,31 @@ html.dark .calling.long { background: #ff453a; color: #fff; }
   }
 }
 .kpi label .lx { font-style: normal; }
+/* หน้า login จอเตี้ย (iPhone SE ฯลฯ): กระชับให้พอดีจอ → ไม่ต้องเลื่อน */
+@media (max-height: 700px) {
+  .auth { padding-top: calc(3.9rem + var(--safe-t)); padding-bottom: calc(.6rem + var(--safe-b)); }
+  .auth .card { padding: 1.5rem 1.5rem 1.35rem; }
+  .auth .brand { margin-bottom: 1rem; gap: .15rem; }
+  .auth .brand-mark { margin-bottom: .2rem; }
+  .auth .brand-mark img { width: 2.6rem; }
+  .auth .wordmark { font-size: 1.75rem; }
+  /* หน้า OTP: ปุ่มตัวเลข/ช่องรหัสเล็กลงพอดีจอ */
+  .otp-head { margin-bottom: .75rem; }
+  .otp-head h2 { font-size: 1.35rem; }
+  .otp-head p { font-size: .8rem; margin-top: .2rem; }
+  .otp-dots-wrap { margin-bottom: .85rem; }
+  .otp-dots i { height: 2.85rem; }
+  .pad { grid-template-columns: repeat(3, 3.6rem); gap: .5rem 1.3rem; }
+  .key { width: 3.6rem; height: 3.6rem; font-size: 1.6rem; }
+}
+@media (max-height: 600px) {   /* จอเตี้ยมาก (iPhone SE รุ่นแรก 568) */
+  .auth { padding-top: calc(3.6rem + var(--safe-t)); padding-bottom: calc(.4rem + var(--safe-b)); }
+  .auth .card { padding: 1.15rem 1.25rem 1.05rem; }
+  .auth .brand { margin-bottom: .75rem; }
+  .auth .brand-mark img { width: 2.2rem; }
+  .pad { grid-template-columns: repeat(3, 3.2rem); gap: .4rem 1.2rem; }
+  .key { width: 3.2rem; height: 3.2rem; font-size: 1.45rem; }
+  .otp-dots i { width: 2.5rem; height: 2.6rem; }
+  .otp-dots-wrap { margin-bottom: .7rem; }
+}
+@media (max-width: 360px) { .otp-dots { gap: .35rem; } .otp-dots i { width: 2.25rem; } }   /* จอแคบ 320–360: ช่อง OTP 6 ช่องไม่ล้นการ์ด */
