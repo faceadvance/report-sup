@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "10";
+  --build: "11";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -138,12 +138,18 @@ html.dark .auth-glow { opacity: .75; }
 .otp-head { text-align: center; margin: 0 0 1.1rem; }
 .otp-head h2 { margin: 0; font-size: 1.5rem; font-weight: 700; letter-spacing: -.02em; }
 .otp-head p { margin: .35rem 0 0; color: var(--sub); font-size: .85rem; line-height: 1.5; }
-.otp-dots-wrap { position: relative; display: flex; justify-content: center; margin: 0 auto 1.4rem; width: max-content; padding: .6rem .9rem; }
-.otp-dots { display: flex; gap: 1rem; }
-.otp-dots i { width: 14px; height: 14px; border-radius: 50%; border: 1.6px solid var(--faint); transition: background .12s, transform .18s var(--spring), border-color .12s; }
-.otp-dots i.on { background: var(--ink); border-color: var(--ink); transform: scale(1.1); }
-.otp-dots.err i { border-color: var(--down); background: transparent; }
-.otp-dots.ok i { background: var(--live); border-color: var(--live); }
+.otp-dots-wrap { position: relative; display: flex; justify-content: center; margin: 0 auto 1.3rem; width: max-content; padding: .2rem; }
+.otp-dots { display: flex; gap: .5rem; }
+.otp-dots i { font-style: normal; position: relative; width: 2.75rem; height: 3.3rem; border-radius: 12px; border: 1.5px solid var(--line-2); background: var(--well); display: grid; place-items: center; transition: border-color .15s, box-shadow .15s, transform .18s var(--spring); }
+.otp-dots i b { font-size: 1.6rem; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.otp-dots i.on b { animation: dpop .3s var(--spring); }
+.otp-dots i.cur { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+.otp-dots i.cur::after { content: ""; position: absolute; width: 2px; height: 1.4rem; border-radius: 2px; background: var(--accent); animation: caret 1s steps(2) infinite; }
+@keyframes caret { 50% { opacity: 0; } }
+.otp-dots.err i { border-color: var(--down); box-shadow: none; }
+.otp-dots.err i::after { display: none; }
+.otp-dots.ok i { border-color: var(--live); box-shadow: 0 0 0 4px color-mix(in srgb, var(--live) 18%, transparent); }
+.otp-dots.ok i::after { display: none; }
 .otp-paste { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; background: transparent; color: transparent; caret-color: transparent; font-size: 16px; }
 .pad { display: grid; grid-template-columns: repeat(3, 4.6rem); gap: .85rem 1.4rem; justify-content: center; }
 .key { width: 4.6rem; height: 4.6rem; border-radius: 50%; border: 0; padding: 0; cursor: pointer; user-select: none; touch-action: manipulation; background: var(--key); color: var(--key-ink); box-shadow: 0 1px 3px #0000001a; font-size: 1.85rem; font-weight: 400; display: flex; align-items: center; justify-content: center; transition: transform .08s, background .12s; }
@@ -482,7 +488,15 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
   .att-table { font-size: .82rem; }
 }
 
+@media (max-width: 420px) {
+  .card { padding-left: 1.3rem; padding-right: 1.3rem; }
+  .otp-dots { gap: .4rem; }
+  .otp-dots i { width: 2.5rem; height: 3.1rem; }
+}
 @media (max-width: 380px) {
+  .otp-dots { gap: .3rem; }
+  .otp-dots i { width: 2.3rem; height: 2.9rem; }
+  .otp-dots i b { font-size: 1.4rem; }
   .key { width: 4.1rem; height: 4.1rem; font-size: 1.6rem; }
   .pad { grid-template-columns: repeat(3, 4.1rem); gap: .7rem 1.1rem; }
   .m .v { font-size: 1.15rem; }

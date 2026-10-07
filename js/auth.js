@@ -1,10 +1,10 @@
 // หน้า login 3 ขั้น: รหัสผ่าน (หรือสแกน) → OTP numpad → (ชวนเปิดสแกนครั้งแรก) → resolve
-import { edge, session } from './api.js?v=10';
-import * as bio from './bio.js?v=10';
-import { USER, LOCK, SHIELD, BACKSPACE } from './icons.js?v=10';
-import { esc } from './fmt.js?v=10';
-import { themeToggle } from './theme.js?v=10';
-import { Snd, soundButton } from './sound.js?v=10';
+import { edge, session } from './api.js?v=11';
+import * as bio from './bio.js?v=11';
+import { USER, LOCK, SHIELD, BACKSPACE } from './icons.js?v=11';
+import { esc } from './fmt.js?v=11';
+import { themeToggle } from './theme.js?v=11';
+import { Snd, soundButton } from './sound.js?v=11';
 
 const OTP_LEN = 6;
 
@@ -94,24 +94,29 @@ export function renderAuth(root, { notice } = {}) {
     function stepOtp(name) {
       let code = '', sending = false, left = 60, timer = 0;
       const c = card(`<div class="otp-head"><h2>กรอกรหัส OTP</h2><p>ส่งเข้า LINE ของ <b>${esc(name || creds.u)}</b> แล้ว · หมดอายุใน 5 นาที</p></div>
-        <div class="otp-dots-wrap"><div class="otp-dots">${'<i></i>'.repeat(OTP_LEN)}</div>
+        <div class="otp-dots-wrap"><div class="otp-dots">${'<i><b></b></i>'.repeat(OTP_LEN)}</div>
           <input class="otp-paste" inputmode="none" autocomplete="one-time-code" aria-label="วางรหัส OTP" maxlength="12"></div>
         <div class="pad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `<button class="key" data-k="${n}">${n}</button>`).join('')}
           <button class="key ghost" data-k="none" tabindex="-1" aria-hidden="true"></button>
           <button class="key" data-k="0">0</button>
           <button class="key ghost" data-k="back" aria-label="ลบ">${BACKSPACE}</button></div>
-        <div class="msg ok">กดค้างที่จุดเพื่อวางรหัสที่คัดลอกจาก LINE</div>
+        <div class="msg ok">กดค้างที่ช่องเพื่อวางรหัสที่คัดลอกจาก LINE</div>
         <div class="otp-foot"><button class="link plain" data-act="back">← เปลี่ยนบัญชี</button><button class="link" data-act="resend" disabled>ส่งใหม่ใน 60 วิ</button></div>`);
       const dotsEl = c.querySelector('.otp-dots'), pad = c.querySelector('.pad'), paste = c.querySelector('.otp-paste'), rs = c.querySelector('[data-act=resend]');
       const isTouch = matchMedia('(pointer: coarse)').matches;
       if (!isTouch) setMsg(c, 'พิมพ์ตัวเลขจากคีย์บอร์ดได้เลย', true);
-      const paint = () => dotsEl.querySelectorAll('i').forEach((d, i) => d.classList.toggle('on', i < code.length));
+      const paint = () => dotsEl.querySelectorAll('i').forEach((d, i) => {
+        d.classList.toggle('on', i < code.length);
+        d.classList.toggle('cur', i === code.length);
+        d.firstChild.textContent = code[i] || '';
+      });
       function tick() {
         clearInterval(timer);
         left = 60; rs.disabled = true; rs.textContent = `ส่งใหม่ใน ${left} วิ`;
         timer = setInterval(() => { left--; if (left <= 0) { clearInterval(timer); rs.disabled = false; rs.textContent = 'ส่งรหัสใหม่'; } else rs.textContent = `ส่งใหม่ใน ${left} วิ`; }, 1000);
       }
       tick();
+      paint();
       async function submit() {
         if (sending) return;
         sending = true; pad.classList.add('busy');
