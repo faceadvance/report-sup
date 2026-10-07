@@ -1,5 +1,5 @@
 // คำนวณ/จัดเก็บข้อมูล — ฟังก์ชันล้วน (เทสด้วย node ได้)
-import { TOTAL } from './config.js';
+import { TOTAL } from './config.js?v=10';
 
 export function derive(r) {
   const orders = r.orders || 0, uniq = r.uniq || 0, sales = Number(r.sales_sum || 0);

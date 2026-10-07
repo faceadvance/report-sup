@@ -3,6 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
+  --build: "10";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -500,3 +501,8 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
   .motes { display: none; }
   .pulse svg, .bgfx .spot { animation: none; }
 }
+
+/* ?safe=1 — ปิดเอฟเฟกต์ทั้งหมด (ใช้ไล่หาสาเหตุบนมือถือ) */
+html.sl-safe *, html.sl-safe *::before, html.sl-safe *::after { animation: none !important; transition: none !important; filter: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; will-change: auto !important; }
+html.sl-safe .bgfx, html.sl-safe .sky, html.sl-safe .auth-glow { display: none !important; }
+html.sl-safe .auth { overflow: visible !important; position: static !important; min-height: 100vh; }

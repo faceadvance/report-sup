@@ -18,7 +18,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://swbxecjguiohpwllvues.supabase.co" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/app.css">
+  <script>if(/[?&]safe=1/.test(location.search))document.documentElement.classList.add("sl-safe")</script>
+  <link rel="stylesheet" href="css/app.css?v=10">
   <script>
     // ?debug=1 → แสดง error/สถานะบนจอ (ใช้ตรวจปัญหาบนมือถือจริง)
     (function () {
@@ -32,8 +33,15 @@
         el.textContent = 'UA: ' + navigator.userAgent + '\n' +
           'app children: ' + (app ? app.children.length : '-') + ' · auth: ' + !!document.querySelector('.auth') + ' · card: ' + !!card +
           (card ? ' · rect ' + Math.round(r.left) + ',' + Math.round(r.top) + ' ' + Math.round(r.width) + 'x' + Math.round(r.height) + ' · opacity ' + cs.opacity + ' · vis ' + cs.visibility : '') +
-          ' · vw ' + innerWidth + 'x' + innerHeight + '\n' + log.join('\n');
+          ' · vw ' + innerWidth + 'x' + innerHeight + '\n' +
+          'build css=' + getComputedStyle(document.documentElement).getPropertyValue('--build').trim() + ' js=' + (window.SL_BUILD || '-') + ' · safe=' + document.documentElement.classList.contains('sl-safe') + '\n' +
+          '#app pos=' + (app ? getComputedStyle(app).position + ' z=' + getComputedStyle(app).zIndex + ' h=' + app.offsetHeight : '-') + '\n' +
+          'top@card: ' + (card ? hit(r.left + r.width / 2, r.top + 80) : '-') + '\n' +
+          'chain: ' + (card ? chain(card) : '-') + '\n' + log.join('\n');
       }
+      function desc(el) { if (!el) return 'null'; return el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).join('.') : ''); }
+      function hit(x, y) { return desc(document.elementFromPoint(x, y)); }
+      function chain(el) { var out = []; for (var e = el; e && e !== document.documentElement; e = e.parentElement) { var c = getComputedStyle(e); var f = []; if (c.position !== 'static') f.push(c.position); if (c.zIndex !== 'auto') f.push('z' + c.zIndex); if (c.transform !== 'none') f.push('tf'); if (c.overflow !== 'visible') f.push('ov:' + c.overflow); if (c.opacity !== '1') f.push('op' + c.opacity); if (c.filter !== 'none') f.push('flt'); if ((c.webkitBackdropFilter || c.backdropFilter || 'none') !== 'none') f.push('bdf'); if (c.willChange !== 'auto') f.push('wc'); out.push(desc(e).split('.')[0] + (f.length ? '[' + f.join(',') + ']' : '')); } return out.join(' < '); }
       window.addEventListener('error', function (e) { log.push('ERR ' + (e.message || e.type) + ' @ ' + (e.filename || (e.target && (e.target.src || e.target.href)) || '') + ':' + (e.lineno || '')); out(); }, true);
       window.addEventListener('unhandledrejection', function (e) { log.push('REJ ' + (e.reason && (e.reason.stack || e.reason.message) || e.reason)); out(); });
       setInterval(out, 1500);
@@ -62,6 +70,6 @@
   <script nomodule>document.getElementById('app').innerHTML = '<p style="padding:40px;text-align:center;font-family:sans-serif">เบราว์เซอร์นี้เก่าเกินไป กรุณาอัปเดต Safari / Chrome</p>';</script>
   <div id="toasts" class="toasts" aria-live="polite"></div>
   <noscript>Sup Live ต้องเปิด JavaScript</noscript>
-  <script type="module" src="js/app.js"></script>
+  <script type="module" src="js/app.js?v=10"></script>
 </body>
 </html>

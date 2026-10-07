@@ -1,15 +1,15 @@
 // หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
-import { rpc, session, AuthError } from '../api.js';
-import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js';
-import { Odo } from '../odometer.js';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js';
-import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc } from '../fmt.js';
-import { createLive } from '../live.js';
-import { pickRange } from '../calendar.js';
-import { toast, toastText, burst, pulseSvg, beat } from '../fx.js';
-import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js';
-import { themeToggle, ping } from '../theme.js';
-import { Snd, soundButton } from '../sound.js';
+import { rpc, session, AuthError } from '../api.js?v=10';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=10';
+import { Odo } from '../odometer.js?v=10';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=10';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc } from '../fmt.js?v=10';
+import { createLive } from '../live.js?v=10';
+import { pickRange } from '../calendar.js?v=10';
+import { toast, toastText, burst, pulseSvg, beat } from '../fx.js?v=10';
+import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=10';
+import { themeToggle, ping } from '../theme.js?v=10';
+import { Snd, soundButton } from '../sound.js?v=10';
 
 const METRICS = [
   ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],

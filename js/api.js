@@ -1,4 +1,4 @@
-import { SB_URL, SB_KEY, AUTH_URL } from './config.js';
+import { SB_URL, SB_KEY, AUTH_URL } from './config.js?v=10';
 
 // ── session: token 10 ชม. ต่อเครื่อง (localStorage) ──
 const SKEY = 'sl_session';
