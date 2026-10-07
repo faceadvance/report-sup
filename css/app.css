@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "39";
+  --build: "40";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -219,7 +219,6 @@ html.dark .seg .ind { background: #636366; box-shadow: none; }
 .seg.team button .tdot { width: .5rem; height: .5rem; border-radius: 50%; background: var(--c, var(--accent)); }
 
 .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: .65rem; margin-bottom: 1.6rem; }
-.kpi.k-sales { grid-column: 1 / -1; order: 1; }   /* แท็บเล็ต/มือถือ: การ์ด 7 ใบ → ยอดขายเต็มแถวปิดท้าย */
 .kpi { position: relative; padding: 1rem 1rem .9rem; border-radius: var(--r-lg); background: var(--card); backdrop-filter: blur(20px) saturate(1.6); -webkit-backdrop-filter: blur(20px) saturate(1.6); border: 1px solid var(--line); box-shadow: var(--shadow); animation: rise .6s var(--ease) both; min-width: 0; }
 .kpi label { display: block; font-size: .8rem; color: var(--sub); font-weight: 500; }
 .kpi .v { display: block; font-weight: 700; font-size: clamp(1.45rem, 6vw, 2.1rem); letter-spacing: -.02em; margin-top: .2rem; }
@@ -424,9 +423,6 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
   .app { padding: 0 1.6rem 3.5rem; }
   .top { padding-left: calc(50vw - 50% + 1.6rem); padding-right: calc(50vw - 50% + 1.6rem); }
   .hero { padding-top: 2.6rem; }
-  .summary { grid-template-columns: repeat(4, 1fr); gap: .8rem; }
-  .kpi.k-sales { grid-column: span 2; order: 0; }   /* คอม: 4+3 → แถว 2 = AOV · ยอดขาย(กว้าง 2) · Con% */
-  .kpi .v { font-size: 2.2rem; }
   :root { --cols: 2.9rem minmax(7.5rem, 1.5fr) minmax(5.8rem, 6.6rem) repeat(8, minmax(3.9rem, 1fr)); --cgap: 1.1rem; }
   .thead { display: grid; grid-template-columns: var(--cols); gap: 0 var(--cgap); padding: .6rem 3.4rem .6rem 1.2rem; position: sticky; top: calc(4.05rem + var(--safe-t)); z-index: 20; font-size: .76rem; font-weight: 500; color: var(--sub); background: var(--bg); background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); margin: 0 0 .5rem; border-radius: 12px; }
   .thead span { text-align: center; white-space: nowrap; }
@@ -514,10 +510,6 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
   .controls { flex-direction: column; align-items: stretch; gap: .5rem; margin-bottom: 1rem; }
   .seg { display: flex; width: 100%; }
   .seg button { flex: 1 0 auto; justify-content: center; padding: .55rem .6rem; }
-  .summary { grid-template-columns: repeat(2, 1fr); gap: .55rem; }
-  .kpi { padding: .85rem .9rem .8rem; }
-  .kpi small { white-space: normal; overflow: visible; line-height: 1.35; }
-  .kd { flex-direction: column; gap: 0; }
   .listbar { flex-direction: column; align-items: stretch; gap: .55rem; }
   .sorter { display: flex; width: 100%; }
   .sorter > span { display: none; }
@@ -542,8 +534,6 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
   .key { width: 4.1rem; height: 4.1rem; font-size: 1.6rem; }
   .pad { grid-template-columns: repeat(3, 4.1rem); gap: .7rem 1.1rem; }
   .m .v { font-size: 1.15rem; }
-  .summary { gap: .45rem; }
-  .kpi { padding: .8rem .75rem .75rem; }
   .who-me { display: none; }
 }
 @media (max-height: 700px) {
@@ -580,10 +570,37 @@ html.sl-safe .auth { overflow: visible !important; position: static !important; 
   .vrow .dl { min-width: 1.9rem; }
 }
 
-/* การ์ดรวม 7 ใบ: ตัวเลขย่อตามความกว้างการ์ด (ยอดขายหลายวันอาจถึงหลักล้าน) · คำอธิบายตัดบรรทัดได้ ไม่ตัดเป็น … */
+/* ════════ การ์ดรวม 7 ใบ · คอม = แถวเดียว · แท็บเล็ต = การ์ด 4+3 · มือถือ = การ์ดเดียว 2 แถว (4+3) ════════
+   +n อยู่ขวาตัวเลข (แบบตาราง) · คำว่า "ในชั่วโมงนี้ (HH:00–)" บอกครั้งเดียวที่ .sum-legend */
+.summary { grid-template-columns: repeat(12, 1fr); gap: .65rem; margin-bottom: .45rem; }
+.summary .kpi { grid-column: span 3; padding: .8rem .9rem .75rem; }
+.summary .kpi:nth-child(n+5) { grid-column: span 4; }
+.kpi label { font-size: .76rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kv { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 .35rem; min-width: 0; margin-top: .15rem; }   /* ที่ไม่พอ → +n ตกบรรทัดใต้ตัวเลข ไม่ล้นการ์ด */
+.kpi .v { margin-top: 0; font-size: 1.9rem; line-height: 1.15; }
+.kpi .kd { display: inline-block; margin: 0; font-size: .74rem; white-space: nowrap; }
+.kpi .kd:empty { display: none; }
+.kpi small { margin-top: .2rem; font-size: .7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sum-legend { margin: 0 0 1.4rem; text-align: right; font-size: .7rem; color: var(--sub); min-height: 1em; }
+.sum-legend b { color: var(--up); font-weight: 600; }
 @supports (container-type: inline-size) {
   .kpi { container-type: inline-size; }
-  .kpi .v { font-size: min(2.2rem, 20cqi); }
+  .kpi .v { font-size: min(1.9rem, 19cqi); }
 }
-.kpi small { white-space: normal; overflow: visible; line-height: 1.35; }
-.kpi.k-sales .kd { flex-direction: row; gap: .4rem; }   /* การ์ดกว้าง → +฿ กับคำอธิบายอยู่บรรทัดเดียว */
+@media (min-width: 1040px) {
+  .summary { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .6rem; }
+  .summary .kpi, .summary .kpi:nth-child(n+5) { grid-column: auto; padding: .75rem .8rem .7rem; }
+}
+@media (max-width: 600px) {
+  /* การ์ดเดียว 2 แถว แบบตัวเลขในการ์ดพนักงาน · ไม่มีบรรทัดอธิบาย */
+  .summary { gap: .75rem .55rem; padding: .85rem .85rem .8rem; border-radius: var(--r-lg); background: var(--card-solid); border: 1px solid var(--line); box-shadow: var(--shadow); animation: rise .6s var(--ease) both; }
+  .summary .kpi { padding: 0; background: none; border: 0; box-shadow: none; border-radius: 0; animation: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .summary .kpi:nth-child(-n+4) { padding-bottom: .7rem; border-bottom: 1px solid var(--line); }
+  .kpi label { font-size: .68rem; }
+  .kv { flex-wrap: wrap; }
+  .kpi .v { font-size: 1.15rem; }   /* ขนาดคงที่ 2 แถวเท่ากัน (ไม่ย่อตามช่อง) · หลักล้านยังพอในช่องแถว 2 */
+  .kpi .kd { font-size: .66rem; }
+  .kpi.long .v { font-size: .98rem; }   /* 7 ตัวอักษรขึ้นไป (หลักล้าน · 100.00%) */
+  .kpi small { display: none; }
+  .sum-legend { margin-bottom: 1.1rem; }
+}

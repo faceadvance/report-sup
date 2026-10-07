@@ -1,15 +1,15 @@
 // หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
-import { rpc, session, AuthError } from '../api.js?v=39';
-import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=39';
-import { Odo } from '../odometer.js?v=39';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=39';
-import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=39';
-import { createLive } from '../live.js?v=39';
-import { pickRange } from '../calendar.js?v=39';
-import { toast, toastText, burst, pulseSvg, beat } from '../fx.js?v=39';
-import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=39';
-import { themeToggle, ping } from '../theme.js?v=39';
-import { Snd, soundButton } from '../sound.js?v=39';
+import { rpc, session, AuthError } from '../api.js?v=40';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=40';
+import { Odo } from '../odometer.js?v=40';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=40';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=40';
+import { createLive } from '../live.js?v=40';
+import { pickRange } from '../calendar.js?v=40';
+import { toast, toastText, burst, pulseSvg, beat } from '../fx.js?v=40';
+import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=40';
+import { themeToggle, ping } from '../theme.js?v=40';
+import { Snd, soundButton } from '../sound.js?v=40';
 
 const METRICS = [
   ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],
@@ -81,8 +81,9 @@ export function mountDashboard(root, me, { onLogout }) {
     </section>
     <section class="summary">
       ${[['calls', 'สายโทร', 'k-call'], ['ans', 'รับสาย', ''], ['uniq', 'ชื่อที่โทร', ''], ['orders', 'ออเดอร์', 'k-ord'], ['aov', 'AOV (บาท)', ''], ['sales', 'ยอดขาย (บาท)', 'k-sales'], ['con', 'Con%', 'k-con']]
-        .map(([k, l, c], i) => `<div class="kpi ${c}" style="animation-delay:${i * 60}ms"><label>${l}</label><span class="v" data-k="${k}"></span><small data-sub="${k}">&nbsp;</small>${SUM_HK[k] ? `<span class="kd" data-kd="${k}"></span>` : ''}</div>`).join('')}
+        .map(([k, l, c], i) => `<div class="kpi ${c}" style="animation-delay:${i * 60}ms"><label>${l}</label><div class="kv"><span class="v" data-k="${k}"></span>${SUM_HK[k] ? `<span class="kd" data-kd="${k}"></span>` : ''}</div><small data-sub="${k}">&nbsp;</small></div>`).join('')}
     </section>
+    <p class="sum-legend" aria-hidden="true"></p>
     <div class="listbar"><h3>ลูกทีม<span class="cnt"></span></h3>
       <div class="sorter" role="group" aria-label="เรียงตาม"><span>เรียง</span>
         ${[['code', 'LIVE·รหัส'], ['orders', 'ออเดอร์'], ['sales', 'ยอดขาย'], ['con', 'Con%'], ['calls', 'สาย']].map(([k, l]) => `<button data-sort="${k}">${l}</button>`).join('')}</div></div>
@@ -93,7 +94,7 @@ export function mountDashboard(root, me, { onLogout }) {
   <div class="syncchip" role="status"><span class="spin"></span><span>อัปเดตไม่สำเร็จ กำลังลองใหม่…</span></div>`;
 
   const $ = (s) => root.querySelector(s);
-  const pill = $('.live-pill'), pulse = $('.pulse'), list = $('.list'), chip = $('.syncchip');
+  const pill = $('.live-pill'), pulse = $('.pulse'), list = $('.list'), chip = $('.syncchip'), legend = $('.sum-legend');
   $('.toolbar').append(themeToggle(), soundButton());
   const sumOdo = {}, sumSub = {};
   root.querySelectorAll('.summary [data-k]').forEach((el) => { sumOdo[el.dataset.k] = new Odo(el); });
@@ -384,23 +385,26 @@ export function mountDashboard(root, me, { onLogout }) {
     const cur = { calls: s.calls, ans: s.answered, uniq: s.uniq, orders: s.orders, aov: s.aov, sales: s.sales_sum, con: s.con };
     for (const k of Object.keys(cur)) {
       const dir = animate && sumPrev ? sign(sumPrev[k], cur[k]) : 0;
-      sumOdo[k].set(k === 'aov' || k === 'sales' ? (cur[k] === null ? '—' : money(cur[k])) : k === 'con' ? (cur[k] === null ? '—' : pct(cur[k])) : int(cur[k]), { dir });
+      const txt = k === 'aov' || k === 'sales' ? (cur[k] === null ? '—' : money(cur[k])) : k === 'con' ? (cur[k] === null ? '—' : pct(cur[k])) : int(cur[k]);
+      sumOdo[k].set(txt, { dir });
+      sumOdo[k].el?.closest('.kpi')?.classList.toggle('long', txt.length > 6);   // หลักล้าน/100.00% → มือถือย่อตัวเลข
     }
     const onCnt = isLive() ? S.members.filter((m) => workState(S.att, m.emp, S.today).s === 'on').length : null;
-    sumSub.calls.textContent = onCnt === null ? `${S.members.length} คนในทีม` : `ทำงานอยู่ ${onCnt}/${S.members.length} คน`;
+    sumSub.calls.textContent = onCnt === null ? `${S.members.length} คนในทีม` : `ทำงาน ${onCnt}/${S.members.length} คน`;
     sumSub.ans.textContent = s.calls ? `อัตรารับ ${pct((s.answered / s.calls) * 100)}` : ' ';
-    sumSub.uniq.textContent = s.list !== null ? `รายชื่อถือครอง ${int(s.list)}` : 'รายชื่อ —';
+    sumSub.uniq.textContent = s.list !== null ? `ถือครอง ${int(s.list)}` : 'ถือครอง —';
     sumSub.orders.textContent = `ปิดได้ ${s.closers}/${S.members.length} คน`;
-    sumSub.sales.textContent = S.members.length ? `เฉลี่ย ${money(s.sales_sum / S.members.length)} ฿/คน` : ' ';
-    sumSub.aov.textContent = 'ต่อออเดอร์ (ไม่นับ 0 บาท)';
-    sumSub.con.textContent = 'ออเดอร์ ÷ ชื่อที่โทร';
+    sumSub.sales.textContent = S.members.length ? `เฉลี่ย ${money(s.sales_sum / S.members.length)}/คน` : ' ';
+    sumSub.aov.textContent = 'ไม่นับ 0 บาท';
+    sumSub.con.textContent = 'ออเดอร์÷ชื่อที่โทร';
     sumPrev = cur;
     renderTeamDelta();
   }
   function renderTeamDelta() {
     const live = isLive() && S.hr.cur_hour;
     const t = live ? teamHourly(S.hr, S.members) : null;
-    for (const k of Object.keys(SUM_HK)) paintDelta(sumKd[k], t, SUM_HK[k], true, S.hr.cur_hour);
+    for (const k of Object.keys(SUM_HK)) paintDelta(sumKd[k], t, SUM_HK[k], false, S.hr.cur_hour);
+    legend.innerHTML = live ? `<b>+n</b> = เพิ่มในชั่วโมงนี้ (${S.hr.cur_hour}–)` : '';
   }
 
   function skeleton() {
