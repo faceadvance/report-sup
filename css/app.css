@@ -89,10 +89,10 @@ html.muted .snd .s-off { opacity: 1; transform: none; color: var(--sub); }
 /* ════════ AUTH: โครงแบบ MO (แสงโคจร + การ์ดกระจก) ในโทน Apple ════════ */
 .auth { position: fixed; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; overflow: hidden auto; padding: calc(4.5rem + var(--safe-t)) 1rem calc(1.5rem + var(--safe-b)); }
 .auth-tools { position: fixed; top: calc(14px + var(--safe-t)); left: 50%; transform: translateX(-50%); z-index: 5; }
-.auth-glow { position: absolute; top: 50%; left: 50%; border-radius: 50%; filter: blur(90px); pointer-events: none; will-change: transform; opacity: .55; }
-html.dark .auth-glow { opacity: .8; }
-.auth-glow.blue { width: 40rem; height: 40rem; margin: -20rem; background: radial-gradient(circle, color-mix(in srgb, var(--accent) 45%, transparent) 0%, transparent 68%); animation: orbitBlue 30s linear infinite; }
-.auth-glow.gold { width: 30rem; height: 30rem; margin: -15rem; background: radial-gradient(circle, #ffb34a66 0%, transparent 68%); animation: orbitGold 30s linear infinite; animation-delay: -15s; }
+.auth-glow { position: absolute; top: 50%; left: 50%; border-radius: 50%; pointer-events: none; opacity: .5; }   /* ไม่ใช้ filter:blur (กิน GPU หนักบน iPhone) — gradient นุ่มแทน */
+html.dark .auth-glow { opacity: .75; }
+.auth-glow.blue { width: 46rem; height: 46rem; margin: -23rem; background: radial-gradient(circle, color-mix(in srgb, var(--accent) 38%, transparent) 0%, color-mix(in srgb, var(--accent) 12%, transparent) 38%, transparent 68%); animation: orbitBlue 30s linear infinite; }
+.auth-glow.gold { width: 36rem; height: 36rem; margin: -18rem; background: radial-gradient(circle, #ffb34a55 0%, #ffb34a1a 38%, transparent 68%); animation: orbitGold 30s linear infinite; animation-delay: -15s; }
 @keyframes orbitBlue { from { transform: rotate(0) translateX(26rem); } to { transform: rotate(360deg) translateX(26rem); } }
 @keyframes orbitGold { from { transform: rotate(0) translateX(30rem); } to { transform: rotate(360deg) translateX(30rem); } }
 .auth-dots { display: none; }
@@ -443,6 +443,13 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
   .grab { display: none; }
   @keyframes popIn { from { opacity: 0; transform: translate(-50%, -46%) scale(.94); } to { opacity: 1; transform: translate(-50%, -50%); } }
   @keyframes popOut { to { opacity: 0; transform: translate(-50%, -48%) scale(.97); } }
+}
+@media (max-width: 600px), (pointer: coarse) {
+  .bgfx .spot { animation: none; width: 140vmax; }
+  .auth-glow { animation-duration: 60s; }
+  .card, .kpi, .emp, .toast, .tg, .snd, .top { -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .card { background: var(--card-solid); }
+  .kpi, .emp { background: var(--card-solid); }
 }
 @media (max-width: 600px) { .who-me { display: none; } .top-row { gap: .45rem; } }
 /* ════════ มือถือ ≤ 600px: จัดใหม่ให้ข้อมูลครบ ไม่ถูกตัด ════════ */
