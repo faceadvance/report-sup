@@ -1,26 +1,26 @@
 // หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
-import { rpc, session, AuthError } from '../api.js?v=15';
-import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=15';
-import { Odo } from '../odometer.js?v=15';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=15';
-import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc } from '../fmt.js?v=15';
-import { createLive } from '../live.js?v=15';
-import { pickRange } from '../calendar.js?v=15';
-import { toast, toastText, burst, pulseSvg, beat } from '../fx.js?v=15';
-import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=15';
-import { themeToggle, ping } from '../theme.js?v=15';
-import { Snd, soundButton } from '../sound.js?v=15';
+import { rpc, session, AuthError } from '../api.js?v=18';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=18';
+import { Odo } from '../odometer.js?v=18';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=18';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc } from '../fmt.js?v=18';
+import { createLive } from '../live.js?v=18';
+import { pickRange } from '../calendar.js?v=18';
+import { toast, toastText, burst, pulseSvg, beat } from '../fx.js?v=18';
+import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=18';
+import { themeToggle, ping } from '../theme.js?v=18';
+import { Snd, soundButton } from '../sound.js?v=18';
 
 const METRICS = [
   ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],
-  ['orders', 'ออเดอร์'], ['aov', 'AOV'], ['con', 'Con%'],
+  ['orders', 'ออเดอร์'], ['aov', 'AOV'], ['sales', 'ยอดขาย'], ['con', 'Con%'],
 ];
 const num = (m) => ({
-  list: m.list_last, uniq: m.uniq, calls: m.calls, ans: m.answered, orders: m.orders, aov: m.aov, con: m.con,
+  list: m.list_last, uniq: m.uniq, calls: m.calls, ans: m.answered, orders: m.orders, aov: m.aov, sales: m.sales_sum, con: m.con,
 });
 const text = {
   list: (v) => (v === null ? '—' : int(v)), uniq: int, calls: int, ans: int, orders: int,
-  aov: (v) => (v === null ? '—' : money(v)), con: (v) => (v === null ? '—' : pct(v)),
+  aov: (v) => (v === null ? '—' : money(v)), sales: (v) => money(v || 0), con: (v) => (v === null ? '—' : pct(v)),
 };
 const HK = { calls: 'calls', ans: 'answered', uniq: 'uniq', orders: 'orders' };
 // +n = ชั่วโมงนี้เพิ่มขึ้นเท่าไหร่ (ตั้งแต่ HH:00 · Live เท่านั้น)
@@ -84,7 +84,7 @@ export function mountDashboard(root, me, { onLogout }) {
     </section>
     <div class="listbar"><h3>ลูกทีม<span class="cnt"></span></h3>
       <div class="sorter" role="group" aria-label="เรียงตาม"><span>เรียง</span>
-        ${[['code', 'LIVE·รหัส'], ['orders', 'ออเดอร์'], ['con', 'Con%'], ['calls', 'สาย']].map(([k, l]) => `<button data-sort="${k}">${l}</button>`).join('')}</div></div>
+        ${[['code', 'LIVE·รหัส'], ['orders', 'ออเดอร์'], ['sales', 'ยอดขาย'], ['con', 'Con%'], ['calls', 'สาย']].map(([k, l]) => `<button data-sort="${k}">${l}</button>`).join('')}</div></div>
     <div class="thead" aria-hidden="true"><span>พนักงาน</span>${METRICS.map(([, l]) => `<span>${l}</span>`).join('')}<span></span></div>
     <div class="list"></div>
   </div>
@@ -131,7 +131,7 @@ export function mountDashboard(root, me, { onLogout }) {
       const initial = esc((m.name || m.emp).trim().charAt(0));
       el.innerHTML = `<button class="emp-head" aria-expanded="false">
           <div class="who"><span class="ava">${m.photo ? `<img src="${esc(m.photo)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : initial}<span class="st" data-s="none"></span></span>
-            <div class="who-txt"><b>${esc(m.name || m.emp)}</b><span><span class="code">${esc(m.emp)}</span><span class="stx"></span></span></div>
+            <div class="who-txt"><b><span class="nm">${esc(m.name || m.emp)}</span><span class="stx"></span></b><span class="sub"><span class="code">${esc(m.emp)}</span></span></div>
             <span class="chev">${CHEV}</span></div>
           ${METRICS.map(([k, l]) => `<div class="m m-${k}"><label>${l}</label><span class="vrow"><span class="v" data-k="${k}"></span>${HK[k] ? `<span class="dl" data-dl="${k}"></span>` : ''}</span>${k === 'list' ? '<span class="rg"></span>' : ''}</div>`).join('')}
           <span class="head-chev chev">${CHEV}</span>

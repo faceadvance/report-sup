@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "15";
+  --build: "18";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -39,6 +39,7 @@ html.dark {
 @supports (height: round(1.2em, 1px)) { :root { --odo-h: round(1.2em, 1px); } }
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; overflow-x: hidden; }
+@supports (overflow-x: clip) { html, body { overflow-x: clip; } }   /* hidden ทำให้ position:sticky พังบน iOS · clip ไม่สร้าง scroll container */
 body {
   font-family: var(--f); color: var(--ink); background: var(--bg); line-height: 1.5;
   -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
@@ -238,7 +239,7 @@ html.dark .sorter button[aria-pressed="true"] { background: #636366; }
 .list { display: flex; flex-direction: column; gap: .7rem; }
 .emp { position: relative; border-radius: var(--r-lg); background: var(--card); backdrop-filter: blur(20px) saturate(1.6); -webkit-backdrop-filter: blur(20px) saturate(1.6); border: 1px solid var(--line); box-shadow: var(--shadow); transition: box-shadow .3s, transform .3s var(--ease); animation: rise .55s var(--ease) both; will-change: transform; }
 .emp.open { box-shadow: var(--shadow-hi); }
-.emp-head { width: 100%; text-align: left; border: 0; background: none; cursor: pointer; padding: 1rem 1.05rem .9rem; border-radius: var(--r-lg); display: grid; gap: .7rem .4rem; grid-template-columns: repeat(4, 1fr); grid-template-areas: "who who who who" "calls ans orders con" "list uniq aov aov" "bar bar bar bar"; transition: transform .15s; }
+.emp-head { width: 100%; text-align: left; border: 0; background: none; cursor: pointer; padding: 1rem 1.05rem .9rem; border-radius: var(--r-lg); display: grid; gap: .7rem .4rem; grid-template-columns: repeat(4, 1fr); grid-template-areas: "who who who who" "calls ans orders con" "list uniq aov sales" "bar bar bar bar"; transition: transform .15s; }
 .emp-head:active { transform: scale(.993); }
 .who { grid-area: who; display: flex; align-items: center; gap: .7rem; min-width: 0; }
 .ava { position: relative; width: 2.7rem; height: 2.7rem; flex: none; border-radius: 50%; background: linear-gradient(180deg, #e8e8ed, #d2d2d7); color: #1d1d1f; display: grid; place-items: center; font-weight: 600; font-size: 1rem; }
@@ -253,10 +254,13 @@ html.dark .ava .st[data-s="none"] { background: #48484a; }
 .ava .st[data-s="on"]::after { content: ""; position: absolute; inset: -5px; border-radius: 50%; border: 2px solid var(--live); animation: ring 2.2s ease-out infinite; }
 @keyframes ring { from { transform: scale(.6); opacity: .9; } to { transform: scale(2.2); opacity: 0; } }
 .who-txt { min-width: 0; flex: 1; }
-.who-txt b { display: block; font-weight: 600; font-size: 1.02rem; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.who-txt span { display: block; font-size: .78rem; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: .05rem; }
-.who-txt span .code { color: var(--ink-2); font-weight: 600; margin-right: .45rem; }
-.who-txt .lv { display: inline-flex; width: auto; margin-top: .2rem; }
+.who-txt b { display: flex; align-items: center; gap: .4rem; min-width: 0; font-weight: 600; font-size: 1.02rem; letter-spacing: -.01em; }
+.who-txt b .nm { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.who-txt b .stx { flex: none; display: inline-flex; }
+.who-txt b .stx:empty { display: none; }
+.who-txt .sub { display: block; font-size: .78rem; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: .05rem; }
+.who-txt .code { color: var(--ink-2); font-weight: 600; margin-right: .45rem; }
+.who-txt .lv { display: inline-flex; width: auto; }
 .lv { display: inline-flex; align-items: center; gap: 4px; font-size: .7rem; font-weight: 600; letter-spacing: .02em; padding: 1px 7px; border-radius: 999px; vertical-align: 1px; }
 .lv.on { color: var(--live); background: color-mix(in srgb, var(--live) 14%, transparent); }
 .lv.on i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: live 1.6s ease-in-out infinite; }
@@ -271,9 +275,9 @@ html.dark .ava .st[data-s="none"] { background: #48484a; }
 .m .rg { display: block; font-size: .7rem; color: var(--sub); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .m-calls { grid-area: calls; } .m-ans { grid-area: ans; } .m-orders { grid-area: orders; } .m-con { grid-area: con; }
 .m-con .v { color: var(--hl); }
-.m-list, .m-uniq, .m-aov { padding-top: .65rem; border-top: 1px solid var(--line); }
-.m-list { grid-area: list; } .m-uniq { grid-area: uniq; } .m-aov { grid-area: aov; }
-.m-list .v, .m-uniq .v, .m-aov .v { font-size: 1.02rem; font-weight: 600; color: var(--ink-2); }
+.m-list, .m-uniq, .m-aov, .m-sales { padding-top: .65rem; border-top: 1px solid var(--line); }
+.m-list { grid-area: list; } .m-uniq { grid-area: uniq; } .m-aov { grid-area: aov; } .m-sales { grid-area: sales; }
+.m-list .v, .m-uniq .v, .m-aov .v, .m-sales .v { font-size: 1.02rem; font-weight: 600; color: var(--ink-2); }
 .conbar { grid-area: bar; height: 4px; border-radius: 4px; background: var(--well); overflow: hidden; }
 .conbar i { display: block; height: 100%; width: 0; border-radius: 4px; background: var(--ink); transition: width 1s var(--ease); }
 html.dark .conbar i { background: var(--ink-2); }
@@ -417,7 +421,7 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
   .hero { padding-top: 2.6rem; }
   .summary { grid-template-columns: repeat(6, 1fr); gap: .8rem; }
   .kpi .v { font-size: 2.2rem; }
-  :root { --cols: minmax(15rem, 2.4fr) repeat(7, minmax(4.8rem, 1fr)) 2.2rem; }
+  :root { --cols: minmax(14rem, 2.2fr) repeat(8, minmax(4.6rem, 1fr)) 2.2rem; }
   .thead { display: grid; grid-template-columns: var(--cols); gap: 0 .6rem; padding: .6rem 1.2rem; position: sticky; top: calc(4.05rem + var(--safe-t)); z-index: 20; font-size: .76rem; font-weight: 500; color: var(--sub); background: var(--bg); background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); margin: 0 0 .5rem; border-radius: 12px; }
   .thead span { text-align: right; white-space: nowrap; }
   .thead span:first-child, .thead span.l { text-align: left; }
@@ -428,12 +432,12 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
   .who, .m, .conbar { grid-area: auto !important; }
   .who { grid-column: 1; }
   .m-list { grid-column: 2; } .m-uniq { grid-column: 3; } .m-calls { grid-column: 4; } .m-ans { grid-column: 5; }
-  .m-orders { grid-column: 6; } .m-aov { grid-column: 7; } .m-con { grid-column: 8; } .head-chev { grid-column: 9; display: grid; justify-self: end; }
+  .m-orders { grid-column: 6; } .m-aov { grid-column: 7; } .m-sales { grid-column: 8; } .m-con { grid-column: 9; } .head-chev { grid-column: 10; display: grid; justify-self: end; }
   .who .chev { display: none; }
   .m { text-align: right; padding: 0 !important; border: 0 !important; grid-row: 1; }
   .vrow { justify-content: flex-end; }
   .m label { display: none; }
-  .m .v, .m-list .v, .m-uniq .v, .m-aov .v { font-size: 1.12rem; font-weight: 600; color: var(--ink); }
+  .m .v, .m-list .v, .m-uniq .v, .m-aov .v, .m-sales .v { font-size: 1.12rem; font-weight: 600; color: var(--ink); }
   .m-con .v { color: var(--hl); font-weight: 700; }
   .conbar { position: absolute; left: 1.2rem; right: 1.2rem; bottom: 0; height: 2px; background: transparent; }
   .conbar i { background: var(--accent) !important; opacity: .55; }
@@ -447,7 +451,7 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
   .crow .c-list, .crow .c-cell { text-align: right; font-size: .95rem; }
   .crow .c-list .rg { display: block; margin: 0; }
   .crow .c-cell.uniq { grid-column: 3; } .crow .c-cell.calls { grid-column: 4; } .crow .c-cell.ans { grid-column: 5; }
-  .crow .c-cell.orders { grid-column: 6; } .crow .c-cell.aov { grid-column: 7; } .crow .c-cell.con { grid-column: 8; }
+  .crow .c-cell.orders { grid-column: 6; } .crow .c-cell.aov { grid-column: 7; } .crow .c-cell.sales { grid-column: 8; } .crow .c-cell.con { grid-column: 9; }
   .sheet { left: 50%; right: auto; bottom: auto; top: 50%; width: 25rem; border-radius: 26px; transform: translate(-50%, -50%); animation: popIn .4s var(--spring) both; padding: 1.3rem 1.3rem 1.2rem; box-shadow: var(--shadow-hi); }
   .sheet.out { animation: popOut .2s ease-in both; }
   .grab { display: none; }
@@ -460,6 +464,8 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
   .card, .kpi, .emp, .toast, .tg, .snd, .top { -webkit-backdrop-filter: none; backdrop-filter: none; }
   .card { background: var(--card-solid); }
   .kpi, .emp { background: var(--card-solid); }
+  .top { background: var(--bg); }
+  .thead { background: var(--bg); }
 }
 @media (max-width: 600px) { .who-me { display: none; } .top-row { gap: .45rem; } }
 /* ════════ มือถือ ≤ 600px: จัดใหม่ให้ข้อมูลครบ ไม่ถูกตัด ════════ */
@@ -480,12 +486,17 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
   .emp-inner { padding: 0 .9rem 1rem; }
   .tabs { display: flex; width: 100%; }
   .tabs button { flex: 1; }
-  .crow { padding: .75rem 0; }
-  .crow .c-line { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .55rem .6rem; padding: .45rem 0 0 1.05rem; }
-  .crow .c-cell { white-space: normal; min-width: 0; }
-  .crow .c-cell .lbl { display: block; font-size: .7rem; line-height: 1.3; }
-  .crow .c-cell .num { font-size: .98rem; }
-  .crow .c-list .lbl { font-size: .72rem; }
+  .crow { padding: .8rem 0; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem .5rem;
+    grid-template-areas: "name name name name" "calls ans orders con" "list uniq aov sales"; }
+  .crow .c-line { display: contents; }
+  .crow .c-name { grid-area: name; }
+  .crow .c-list { grid-area: list; text-align: left; }
+  .crow .c-cell.calls { grid-area: calls; } .crow .c-cell.ans { grid-area: ans; } .crow .c-cell.orders { grid-area: orders; }
+  .crow .c-cell.con { grid-area: con; } .crow .c-cell.uniq { grid-area: uniq; } .crow .c-cell.aov { grid-area: aov; } .crow .c-cell.sales { grid-area: sales; }
+  .crow .c-cell, .crow .c-list { white-space: normal; min-width: 0; padding-left: 0; }
+  .crow .c-cell .lbl, .crow .c-list .lbl { display: block; font-size: .72rem; line-height: 1.3; }
+  .crow .c-cell .num, .crow .c-list .num { font-size: 1rem; }
+  .crow .c-list .rg { display: block; margin: 0; }
   .tl-legend { gap: .25rem .8rem; font-size: .78rem; }
   .att-table { font-size: .82rem; }
 }

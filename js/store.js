@@ -1,5 +1,5 @@
 // คำนวณ/จัดเก็บข้อมูล — ฟังก์ชันล้วน (เทสด้วย node ได้)
-import { TOTAL } from './config.js?v=15';
+import { TOTAL } from './config.js?v=18';
 
 export function derive(r) {
   const orders = r.orders || 0, uniq = r.uniq || 0, sales = Number(r.sales_sum || 0);
@@ -63,6 +63,7 @@ const SORTS = {
   orders: (a, b) => b.orders - a.orders || (b.con ?? -1) - (a.con ?? -1),
   con: (a, b) => (b.con ?? -1) - (a.con ?? -1) || b.orders - a.orders,
   calls: (a, b) => b.calls - a.calls,
+  sales: (a, b) => b.sales_sum - a.sales_sum || b.orders - a.orders,
 };
 // liveRank(emp) → 0 = LIVE · 1 = ปิดระบบแล้ว · 2 = ยังไม่เปิด (ใช้เฉพาะเรียงตามรหัสตอนดู Live)
 export function sortMembers(members, idx, key = 'code', liveRank = null) {
