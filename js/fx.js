@@ -1,5 +1,5 @@
 // toast + ละอองทอง + เส้นชีพจร
-import { esc } from './fmt.js?v=47';
+import { esc } from './fmt.js?v=48';
 
 export function toast(html, { icon = '✨', err = false, ms = 3800 } = {}) {
   const box = document.getElementById('toasts');
@@ -38,7 +38,7 @@ export function burst(host, n = 16) {
 // ════════ เส้นชีพจร (ECG) แบบจอมอนิเตอร์ ════════
 // ปกติ = เส้นตรง · มีเหตุการณ์ → เกิดคลื่นที่ขอบขวาแล้วไหลไปซ้าย (เหตุการณ์ติดกันต่อเป็นขบวน)
 // สีเดียวทั้งเส้น (สี accent) · push(amp, kind): amp = px (บวก = ขึ้น · ลบ = ลง) · kind: 'beat' คลื่นหัวใจ | 'hump' นูนเตี้ย
-// setCalling(n): มีคนกำลังโทร → เส้นขึ้น-ลงต่อเนื่อง (ฟันเลื่อย) ความถี่คงที่ สูงตามจำนวนคน · วางสายหมด = เส้นตรง
+// setCalling(n): มีคนกำลังโทร → คลื่นหัวใจต่อเนื่องเป็นจังหวะคงที่ สูงตามจำนวนคน · วางสายหมด = เส้นตรง
 // หยุดวาดเองเมื่อเส้นเรียบและไม่มีคิว (ไม่กิน CPU ตอนเงียบ) · แท็บซ่อน = ไม่วาด
 export function createEcg(host) {
   const cv = document.createElement('canvas');
@@ -48,8 +48,10 @@ export function createEcg(host) {
   const GAP = 5;                              // ช่องว่างระหว่างคลื่น (px)
   // ความเร็ว: เส้นทั้งจอ = 1 นาทีล่าสุด (เจ้านายกำหนด) · คิวยาว (ช่วงคึก) → เร่ง ×3 ไม่ให้คลื่นค้างคิว
   const speed = () => Math.max(4, W / 30) * (q.length > 90 ? 3 : 1);   // ทั้งจอ = 30 วินาทีล่าสุด
-  // กำลังโทร = ฟันเลื่อยขึ้น-ลงต่อเนื่อง (เส้นตรงหักมุม ไม่โค้ง) ความถี่คงที่ ~2 รอบ/วินาที · ขึ้น/ลงไม่มีความหมายแยก
-  const humPeriod = () => Math.max(10, Math.round(Math.max(4, W / 30) * .5));
+  // กำลังโทร = คลื่นหัวใจจริง (P · QRS แหลม · T) ต่อกันเป็นจังหวะคงที่ ~75 ครั้ง/นาที แบบจอมอนิเตอร์ · สูงตามจำนวนคน
+  const ECG_PTS = [[0, 0], [.06, 0], [.12, .1], [.18, 0], [.3, 0], [.34, -.15], [.4, 1], [.46, -.42], [.5, 0], [.62, 0], [.72, .22], [.82, 0], [1, 0]];
+  const humPeriod = () => Math.max(26, Math.round(Math.max(4, W / 30) * .8));
+  const ecgAt = (t) => { for (let i = 1; i < ECG_PTS.length; i++) { const [x0, v0] = ECG_PTS[i - 1], [x1, v1] = ECG_PTS[i]; if (t <= x1) return v0 + (v1 - v0) * (t - x0) / (x1 - x0); } return 0; };
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let W = 0, H = 0, dpr = 1, y = [], tone = [], q = [], raf = 0, last = 0, acc = 0, moved = 0, active = true, col = null, hum = 0, phase = 0;   // phase = ตำแหน่งในรอบแท่งชีพจร
 
@@ -100,9 +102,9 @@ export function createEcg(host) {
     let n = Math.floor(acc); acc -= n;
     if (n > 0) {
       n = Math.min(n, W);
-      const add = q.splice(0, n);
+      const add = q.splice(0, n).map((it) => (hum && !it[0] ? null : it)).filter(Boolean);   // ช่องว่างระหว่างคลื่นตอนมีคนโทร → ให้คลื่นหัวใจเดินต่อ (ไม่ขาดเป็นช่วง)
       while (add.length < n) {   // ไม่มีเหตุการณ์ → มีคนกำลังโทร = คลื่นส้มต่อเนื่อง (แรงตามจำนวนคน) · ไม่มี = เส้นตรง
-        if (hum) { const P = humPeriod(), t = phase / P; const tri = t < .25 ? t * 4 : t < .75 ? 2 - t * 4 : t * 4 - 4; add.push([hum * tri || 0.0001, 0]); phase = (phase + 1) % P; } else { phase = 0; add.push([0, 0]); }
+        if (hum) { const P = humPeriod(); add.push([hum * ecgAt(phase / P) || 0.0001, 0]); phase = (phase + 1) % P; } else { phase = 0; add.push([0, 0]); }
       }
       y.splice(0, n); tone.splice(0, n);
       for (const [v, c] of add) { y.push(v); tone.push(c); }
@@ -142,7 +144,7 @@ export function createEcg(host) {
     },
     setActive(v) { active = v; if (!v) { q = []; hum = 0; y.fill(0); } draw(); },
     // จำนวนคนที่กำลังโทรอยู่ → คลื่นต่อเนื่อง 1 คน ≈ 3px … ยิ่งหลายคนยิ่งแรง (สูงสุด 11px)
-    setCalling(n) { const h = active && !reduce && n > 0 ? Math.min(11, 1.8 + n * 1.3) : 0; if (h !== hum) { hum = h; kick(); } },
+    setCalling(n) { const h = active && !reduce && n > 0 ? Math.min(12, 4 + n * 1.2) : 0; if (h !== hum) { hum = h; kick(); } },   // 1 คน ≈ 5px … 7 คนขึ้นไป = สุด
   };
 }
 export function beat(el) {

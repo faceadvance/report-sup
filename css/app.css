@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "47";
+  --build: "48";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -575,8 +575,8 @@ html.sl-safe .auth { overflow: visible !important; position: static !important; 
 }
 
 /* ════════ การ์ดรวม 7 ใบ · คอม = แถวเดียว · แท็บเล็ต = การ์ด 4+3 · มือถือ = การ์ดเดียว 2 แถว (4+3) ════════
-   +n อยู่ขวาตัวเลข (แบบตาราง) · คำว่า "ในชั่วโมงนี้ (HH:00–)" บอกครั้งเดียวที่ .sum-legend */
-.summary { grid-template-columns: repeat(12, 1fr); gap: .65rem; margin-bottom: .45rem; }
+   +n อยู่ขวาตัวเลข (แบบตาราง) */
+.summary { grid-template-columns: repeat(12, 1fr); gap: .65rem; margin-bottom: 1.5rem; }
 .summary .kpi { grid-column: span 3; padding: .8rem .9rem .75rem; }
 .summary .kpi:nth-child(n+5) { grid-column: span 4; }
 .kpi label { font-size: .76rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -585,8 +585,6 @@ html.sl-safe .auth { overflow: visible !important; position: static !important; 
 .kpi .kd { display: inline-block; margin: 0; font-size: .74rem; white-space: nowrap; }
 .kpi .kd:empty { display: none; }
 .kpi small { margin-top: .2rem; font-size: .7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sum-legend { margin: 0 0 1.4rem; text-align: right; font-size: .7rem; color: var(--sub); min-height: 1em; }
-.sum-legend b { color: var(--up); font-weight: 600; }
 @supports (container-type: inline-size) {
   .kpi { container-type: inline-size; }
   .kpi .v { font-size: min(1.9rem, 19cqi); }
@@ -609,7 +607,7 @@ html.sl-safe .auth { overflow: visible !important; position: static !important; 
   .kpi.long .v, .summary .kpi.long:nth-child(n+5) .v { font-size: .98rem; }
   .kpi .kd { font-size: .64rem; }
   .kpi small { display: none; }
-  .sum-legend { margin-bottom: 1.1rem; }
+  .summary { margin-bottom: 1.1rem; }
 }
 
 /* ════════ ป้าย "กำลังโทร" (แบบปุ่มกำลังโทรในระบบหลัก: ส้ม · ไอคอนสั่น · เต้นเบาๆ · ไม่มีแสงฟุ้ง) · เกิน 60 นาที → แดง ════════ */
