@@ -1,5 +1,5 @@
 // toast + ละอองทอง + เส้นชีพจร
-import { esc } from './fmt.js?v=35';
+import { esc } from './fmt.js?v=36';
 
 export function toast(html, { icon = '✨', err = false, ms = 3800 } = {}) {
   const box = document.getElementById('toasts');
