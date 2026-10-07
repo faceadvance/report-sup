@@ -1,15 +1,15 @@
 // หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
-import { rpc, session, AuthError } from '../api.js?v=48';
-import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=48';
-import { Odo } from '../odometer.js?v=48';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=48';
-import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=48';
-import { createLive } from '../live.js?v=48';
-import { pickRange } from '../calendar.js?v=48';
-import { toast, toastText, burst, createEcg } from '../fx.js?v=48';
-import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=48';
-import { themeToggle, ping } from '../theme.js?v=48';
-import { Snd, soundButton } from '../sound.js?v=48';
+import { rpc, session, AuthError } from '../api.js?v=49';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=49';
+import { Odo } from '../odometer.js?v=49';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=49';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=49';
+import { createLive } from '../live.js?v=49';
+import { pickRange } from '../calendar.js?v=49';
+import { toast, toastText, burst, createEcg } from '../fx.js?v=49';
+import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=49';
+import { themeToggle, ping } from '../theme.js?v=49';
+import { Snd, soundButton } from '../sound.js?v=49';
 
 const METRICS = [
   ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],

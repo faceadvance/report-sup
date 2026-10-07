@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "48";
+  --build: "49";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -190,7 +190,7 @@ html.dark .key { box-shadow: none; }
 .pulse { position: relative; height: 28px; margin: .1rem calc(50% - 50vw) -.75rem; overflow: hidden; }
 .pulse canvas { position: absolute; inset: 0; display: block; }
 .pulse::before, .pulse::after { content: ""; position: absolute; top: 0; bottom: 0; width: 22%; z-index: 1; pointer-events: none; }
-.pulse::after { width: 5%; }   /* ขวาจางนิดเดียว — คลื่นเกิดขอบขวาต้องเห็นทันที */
+.pulse::before, .pulse::after { width: 3%; }   /* sweep: หัวเขียนวิ่งทั้งจอ → จางขอบนิดเดียว */
 .pulse::before { left: 0; background: linear-gradient(90deg, var(--bg), transparent); }
 .pulse::after { right: 0; background: linear-gradient(-90deg, var(--bg), transparent); }
 

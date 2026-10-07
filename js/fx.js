@@ -1,5 +1,5 @@
 // toast + ละอองทอง + เส้นชีพจร
-import { esc } from './fmt.js?v=48';
+import { esc } from './fmt.js?v=49';
 
 export function toast(html, { icon = '✨', err = false, ms = 3800 } = {}) {
   const box = document.getElementById('toasts');
@@ -35,116 +35,100 @@ export function burst(host, n = 16) {
   if (navigator.vibrate) try { navigator.vibrate(30); } catch { /* บางเครื่องไม่ให้ */ }
 }
 
-// ════════ เส้นชีพจร (ECG) แบบจอมอนิเตอร์ ════════
-// ปกติ = เส้นตรง · มีเหตุการณ์ → เกิดคลื่นที่ขอบขวาแล้วไหลไปซ้าย (เหตุการณ์ติดกันต่อเป็นขบวน)
-// สีเดียวทั้งเส้น (สี accent) · push(amp, kind): amp = px (บวก = ขึ้น · ลบ = ลง) · kind: 'beat' คลื่นหัวใจ | 'hump' นูนเตี้ย
-// setCalling(n): มีคนกำลังโทร → คลื่นหัวใจต่อเนื่องเป็นจังหวะคงที่ สูงตามจำนวนคน · วางสายหมด = เส้นตรง
-// หยุดวาดเองเมื่อเส้นเรียบและไม่มีคิว (ไม่กิน CPU ตอนเงียบ) · แท็บซ่อน = ไม่วาด
+// ════════ เส้นชีพจร (ECG) แบบจอมอนิเตอร์ (sweep) ════════
+// หัวเขียน (จุดเรือง) วิ่งซ้าย→ขวาด้วยความเร็วแนวนอนคงที่ (ทั้งจอ = 30 วิ) เขียนเส้นทับรอบเก่า · หน้าหัวเขียนมีช่องลบ · ถึงขวาสุดวนกลับซ้าย
+// เส้นใหม่เข้ม เก่าจางลงตามอายุ · ช่วงยักขึ้นลงหัวเขียนจะดูพุ่งเร็ว (ระยะทางเส้นยาวในเวลาเท่ากัน) เหมือนเครื่องจริง
+// สีเดียว · push(amp, kind): amp = px (บวก = ขึ้น · ลบ = ลง) · kind: 'beat' คลื่นหัวใจ | 'hump' นูนเตี้ย
+// setCalling(n): มีคนกำลังโทร → คลื่นหัวใจต่อเนื่องจังหวะคงที่ สูงตามจำนวนคน · วางสายหมด = เส้นตรง
+// แท็บซ่อน = หยุดวาด · โหมดย้อนหลัง/ลดการเคลื่อนไหว = เส้นตรงนิ่ง
 export function createEcg(host) {
   const cv = document.createElement('canvas');
   cv.setAttribute('aria-hidden', 'true');
   host.replaceChildren(cv);
   const ctx = cv.getContext('2d');
-  const GAP = 5;                              // ช่องว่างระหว่างคลื่น (px)
-  // ความเร็ว: เส้นทั้งจอ = 1 นาทีล่าสุด (เจ้านายกำหนด) · คิวยาว (ช่วงคึก) → เร่ง ×3 ไม่ให้คลื่นค้างคิว
-  const speed = () => Math.max(4, W / 30) * (q.length > 90 ? 3 : 1);   // ทั้งจอ = 30 วินาทีล่าสุด
-  // กำลังโทร = คลื่นหัวใจจริง (P · QRS แหลม · T) ต่อกันเป็นจังหวะคงที่ ~75 ครั้ง/นาที แบบจอมอนิเตอร์ · สูงตามจำนวนคน
-  const ECG_PTS = [[0, 0], [.06, 0], [.12, .1], [.18, 0], [.3, 0], [.34, -.15], [.4, 1], [.46, -.42], [.5, 0], [.62, 0], [.72, .22], [.82, 0], [1, 0]];
-  const humPeriod = () => Math.max(26, Math.round(Math.max(4, W / 30) * .8));
-  const ecgAt = (t) => { for (let i = 1; i < ECG_PTS.length; i++) { const [x0, v0] = ECG_PTS[i - 1], [x1, v1] = ECG_PTS[i]; if (t <= x1) return v0 + (v1 - v0) * (t - x0) / (x1 - x0); } return 0; };
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let W = 0, H = 0, dpr = 1, y = [], tone = [], q = [], raf = 0, last = 0, acc = 0, moved = 0, active = true, col = null, hum = 0, phase = 0;   // phase = ตำแหน่งในรอบแท่งชีพจร
+  const ERASE = 18, FADE_BUCKETS = 8;
+  const ECG_PTS = [[0, 0], [.06, 0], [.12, .1], [.18, 0], [.3, 0], [.34, -.15], [.4, 1], [.46, -.42], [.5, 0], [.62, 0], [.72, .22], [.82, 0], [1, 0]];
+  const ecgAt = (t) => { for (let k = 1; k < ECG_PTS.length; k++) { const [x0, v0] = ECG_PTS[k - 1], [x1, v1] = ECG_PTS[k]; if (t <= x1) return v0 + (v1 - v0) * (t - x0) / (x1 - x0); } return 0; };
+  let W = 0, H = 0, dpr = 1, y = [], q = [], raf = 0, last = 0, head = 0, active = true, col = '#0071e3', hum = 0, phase = 0;
+  const speed = () => Math.max(36, W / 30);                                    // px/วินาที: คอม = ทั้งจอ 30 วิ · จอแคบ (มือถือ) ไม่ช้ากว่า 36 px/วิ (ไม่อืด · ทั้งจอ ≈ 11 วิ)
+  const humPeriod = () => Math.max(26, Math.round(speed() * .8));              // ~75 ครั้ง/นาที
 
-  function colors() {
-    const cs = getComputedStyle(host);
-    col = [cs.getPropertyValue('--accent').trim() || '#0071e3', cs.getPropertyValue('--up').trim() || '#1a9e4b', cs.getPropertyValue('--down').trim() || '#d70015', document.documentElement.classList.contains('dark') ? '#ff9f0a' : '#f59e0b'];
-  }
+  function colors() { col = getComputedStyle(host).getPropertyValue('--accent').trim() || '#0071e3'; }
   function resize() {
     const w = Math.max(1, Math.round(host.clientWidth)), h = Math.max(1, Math.round(host.clientHeight));
     dpr = Math.min(2, window.devicePixelRatio || 1);
-    if (w !== W) {   // คงคลื่นที่วิ่งอยู่ (ชิดขวา)
-      const ny = new Array(w).fill(0), nt = new Array(w).fill(0);
-      for (let k = 1; k <= Math.min(w, W); k++) { ny[w - k] = y[W - k]; nt[w - k] = tone[W - k]; }
-      y = ny; tone = nt; W = w;
-    }
+    if (w !== W) { y = new Array(w).fill(0); head = Math.min(head, w - 1); W = w; }
     H = h; cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
     colors(); draw();
+  }
+  function nextSample() {
+    if (q.length) { const v = q.shift(); if (!(hum && !v)) return v; }   // ช่องว่างระหว่างคลื่นตอนมีคนโทร → คลื่นหัวใจเดินต่อ
+    if (hum) { const P = humPeriod(), v = hum * ecgAt(phase / P); phase = (phase + 1) % P; return v; }
+    phase = 0; return 0;
   }
   function draw() {
     if (!W) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
-    ctx.translate(-acc, 0);   // เลื่อนเศษพิกเซล → วิ่งลื่นแม้ความเร็วต่ำ
-    const mid = H / 2, cap = mid - 1.5;
-    const Y = (k) => mid - Math.max(-cap, Math.min(cap, y[k]));
-    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-    // เส้นฐานทั้งเส้น (จาง)
-    ctx.globalAlpha = active ? .3 : .12; ctx.strokeStyle = col[0]; ctx.lineWidth = 1.3;
-    ctx.beginPath(); ctx.moveTo(0, Y(0)); for (let k = 1; k < W; k++) ctx.lineTo(k, Y(k)); ctx.stroke();
-    if (!active) return;
-    // ช่วงที่เป็นคลื่น (เข้ม · สีตามชนิด)
-    ctx.globalAlpha = .95; ctx.lineWidth = 1.8;
-    for (let k = 1; k < W; k++) {
-      if (!y[k] && !y[k - 1]) continue;
-      let e = k; const t = tone[k];
-      while (e < W && (y[e] || y[e - 1]) && tone[e] === t) e++;
-      ctx.strokeStyle = col[0]; ctx.beginPath();   // สีเดียว ctx.moveTo(k - 1, Y(k - 1));
-      for (let m = k; m < e; m++) ctx.lineTo(m, Y(m));
-      ctx.stroke(); k = e - 1;
+    const mid = H / 2, cap = mid - 2;
+    const Y = (k) => mid - Math.max(-cap, Math.min(cap, y[k] || 0));
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.strokeStyle = col;
+    if (!active) { ctx.globalAlpha = .12; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.moveTo(0, mid); ctx.lineTo(W, mid); ctx.stroke(); return; }
+    const hx = Math.floor(head);
+    // วาดเป็นช่วงตามอายุ (ใหม่ = เข้ม · เก่า = จาง) · เว้นช่องลบหน้าหัวเขียน
+    for (let b = FADE_BUCKETS - 1; b >= 0; b--) {
+      const a0 = Math.round((W * b) / FADE_BUCKETS), a1 = Math.round((W * (b + 1)) / FADE_BUCKETS);   // อายุ a0..a1 px หลังหัวเขียน
+      ctx.globalAlpha = .18 + .8 * Math.pow(1 - b / FADE_BUCKETS, 1.6);
+      ctx.lineWidth = b === 0 ? 1.8 : 1.4;
+      ctx.beginPath(); let pen = false, pk = -1;
+      for (let a = a1; a >= a0; a--) {
+        if (a > W - ERASE) { pen = false; continue; }   // ช่องลบหน้าหัวเขียน
+        const k = (((hx - a) % W) + W) % W;
+        if (pen && k < pk) pen = false;                 // วนจากขอบขวากลับซ้าย → ไม่ลากเส้นข้ามจอ
+        if (!pen) { ctx.moveTo(k, Y(k)); pen = true; } else ctx.lineTo(k, Y(k));
+        pk = k;
+      }
+      ctx.stroke();
     }
+    // หัวเขียน: จุดเรือง
+    ctx.globalAlpha = 1; ctx.fillStyle = col; ctx.shadowColor = col; ctx.shadowBlur = 8;
+    ctx.beginPath(); ctx.arc(hx, Y(hx), 2.2, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
   }
-  const idle = () => !hum && !q.length && !y.some((v) => v);
   function frame(t) {
     raf = 0;
-    if (document.hidden) { last = 0; return; }
+    if (document.hidden || !active || reduce) { last = 0; return; }
     const dt = last ? Math.min(.1, (t - last) / 1000) : 0; last = t;
-    const mv = dt * speed(); acc += mv; moved += mv;
-    let n = Math.floor(acc); acc -= n;
-    if (n > 0) {
-      n = Math.min(n, W);
-      const add = q.splice(0, n).map((it) => (hum && !it[0] ? null : it)).filter(Boolean);   // ช่องว่างระหว่างคลื่นตอนมีคนโทร → ให้คลื่นหัวใจเดินต่อ (ไม่ขาดเป็นช่วง)
-      while (add.length < n) {   // ไม่มีเหตุการณ์ → มีคนกำลังโทร = คลื่นส้มต่อเนื่อง (แรงตามจำนวนคน) · ไม่มี = เส้นตรง
-        if (hum) { const P = humPeriod(); add.push([hum * ecgAt(phase / P) || 0.0001, 0]); phase = (phase + 1) % P; } else { phase = 0; add.push([0, 0]); }
-      }
-      y.splice(0, n); tone.splice(0, n);
-      for (const [v, c] of add) { y.push(v); tone.push(c); }
-    }
-    if (moved >= Math.max(.34, speed() / 30)) { moved = 0; draw(); }   // วาดเมื่อขยับพอ (≤ 30 ครั้ง/วิ · ประหยัดเครื่อง · ยังลื่น)
-    if (idle()) { last = 0; acc = 0; return; }
+    const prev = Math.floor(head);
+    head += dt * speed();
+    let cur = Math.floor(head);
+    for (let x = prev + 1; x <= cur; x++) { const k = x % W; y[k] = nextSample(); }
+    if (head >= W) head -= W;
+    draw();
     raf = requestAnimationFrame(frame);
   }
-  const kick = () => { if (!raf && active && !document.hidden) raf = requestAnimationFrame(frame); };
-
+  const kick = () => { if (!raf && active && !reduce && !document.hidden) raf = requestAnimationFrame(frame); };
   function wave(amp, kind) {
     const out = [];
-    if (kind === 'hump') {   // นูนเรียบ ๆ
-      const w = 22; for (let k = 0; k < w; k++) out.push(amp * Math.sin(Math.PI * k / (w - 1)));
-      return out;
-    }
-    // P · Q · R · S · T แบบคลื่นหัวใจ (amp ลบ = กลับหัว R ชี้ลง)
+    if (kind === 'hump') { const w = 22; for (let k = 0; k < w; k++) out.push(amp * Math.sin(Math.PI * k / (w - 1))); return out; }
     const pts = [[0, 0], [3, .12], [6, 0], [9, 0], [11, -.18], [14, 1], [17, -.38], [20, 0], [24, 0], [28, .2], [32, 0]];
-    for (let i = 1; i < pts.length; i++) {
-      const [x0, v0] = pts[i - 1], [x1, v1] = pts[i];
-      for (let x = x0; x < x1; x++) out.push(amp * (v0 + (v1 - v0) * (x - x0) / (x1 - x0)));
-    }
+    for (let k = 1; k < pts.length; k++) { const [x0, v0] = pts[k - 1], [x1, v1] = pts[k]; for (let x = x0; x < x1; x++) out.push(amp * (v0 + (v1 - v0) * (x - x0) / (x1 - x0))); }
     return out;
   }
-
   new ResizeObserver(resize).observe(host);
-  new MutationObserver(colors).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });   // สลับธีม
+  new MutationObserver(() => { colors(); draw(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) kick(); });
-
+  kick();
   return {
-    push(amp, kind = 'beat', t = 0) {
-      if (!active || reduce || !amp || document.hidden) return;   // แท็บซ่อน = ไม่สะสมคิว (กลับมาจะไม่เล่นคลื่นเก่าย้อนหลัง)
-      if (q.length > W * 1.5) return;          // คิวล้น (สัญญาณถี่ผิดปกติ) → ทิ้ง
-      if (q.length) for (let k = 0; k < GAP; k++) q.push([0, 0]);
-      for (const v of wave(amp, kind)) q.push([v || 0.0001, t]);   // 0.0001 = ยังนับเป็นช่วงคลื่น (สีเข้มต่อเนื่อง)
-      kick();
+    push(amp, kind = 'beat') {
+      if (!active || reduce || !amp || document.hidden) return;   // แท็บซ่อน = ไม่สะสมคิว
+      if (q.length > W) return;                                    // คิวล้น (สัญญาณถี่ผิดปกติ) → ทิ้ง
+      if (q.length) for (let k = 0; k < 5; k++) q.push(0);
+      for (const v of wave(amp, kind)) q.push(v);
     },
-    setActive(v) { active = v; if (!v) { q = []; hum = 0; y.fill(0); } draw(); },
-    // จำนวนคนที่กำลังโทรอยู่ → คลื่นต่อเนื่อง 1 คน ≈ 3px … ยิ่งหลายคนยิ่งแรง (สูงสุด 11px)
-    setCalling(n) { const h = active && !reduce && n > 0 ? Math.min(12, 4 + n * 1.2) : 0; if (h !== hum) { hum = h; kick(); } },   // 1 คน ≈ 5px … 7 คนขึ้นไป = สุด
+    setActive(v) { active = v; if (!v) { q = []; hum = 0; y.fill(0); head = 0; } draw(); kick(); },
+    setCalling(n) { hum = active && !reduce && n > 0 ? Math.min(12, 4 + n * 1.2) : 0; },   // 1 คน ≈ 5px … 7 คนขึ้นไป = สุด
   };
 }
 export function beat(el) {
