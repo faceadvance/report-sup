@@ -1,6 +1,6 @@
 // Realtime: private channel 'sup:team:<id>' (RLS ตรวจสิทธิ์ทีม) · สัญญาณมีแค่ {emp,t}
 // หลุด → ต่อใหม่แบบ backoff · กลับมาเปิดแอป (visibilitychange) → ต่อใหม่ + ให้แอปดึงข้อมูลทั้งหมด
-import { SB_URL, SB_KEY } from './config.js?v=37';
+import { SB_URL, SB_KEY } from './config.js?v=38';
 
 // โหลดไลบรารี supabase (UMD ในเว็บเราเอง) เฉพาะตอนต้องใช้ realtime — หน้า login ไม่ต้องรอไฟล์นี้
 let libP = null;
@@ -9,7 +9,7 @@ function loadLib() {
   if (!libP) {
     libP = new Promise((res, rej) => {
       const s = document.createElement('script');
-      s.src = 'js/vendor/supabase.js?v=37';
+      s.src = 'js/vendor/supabase.js?v=38';
       s.async = true;
       s.onload = () => (window.supabase && window.supabase.createClient ? res(window.supabase) : rej(new Error('lib')));
       s.onerror = () => { libP = null; rej(new Error('lib')); };
@@ -38,7 +38,9 @@ export function createLive({ getToken, onSignal, onStatus, onResume }) {
     let c;
     try { c = await client(); } catch { schedule(); return; }   // โหลดไลบรารี/ต่อไม่ได้ → ลองใหม่แบบ backoff (ตัวเลขยังดึงผ่าน RPC ได้ปกติ)
     if (stopped) return;
-    if (ch) { try { await c.removeChannel(ch); } catch { /* ช่องเก่าปิดไปแล้ว */ } ch = null; }
+    // ปลด ch ก่อน await — ไม่งั้น CLOSED ของช่องเก่าผ่านเช็ค my===ch → schedule() → retry>0 → SUBSCRIBED ถูกนับเป็น "ต่อใหม่" → onResume → loadAll → watch → วนทุก ~1 วิ
+    if (ch) { const old = ch; ch = null; try { await c.removeChannel(old); } catch { /* ช่องเก่าปิดไปแล้ว */ } }
+    if (stopped || ch) return;   // ระหว่างรอมี join อื่นแทรกแล้ว
     setStatus(retry ? 'reconnecting' : 'connecting');
     const my = c.channel('sup:team:' + team, { config: { private: true } })
       .on('broadcast', { event: 'changed' }, (m) => { if (my === ch && m.payload?.emp) onSignal(m.payload); });
@@ -64,7 +66,10 @@ export function createLive({ getToken, onSignal, onStatus, onResume }) {
   window.addEventListener('online', () => { if (!stopped) { retry = Math.max(retry, 1); join(); } });
 
   return {
-    watch(teamId) { team = teamId; stopped = false; retry = 0; join(); },
+    watch(teamId) {
+      if (!stopped && team === teamId && ch) return;   // ทีมเดิม ช่องยังอยู่ → ไม่ต้องต่อใหม่ (loadAll เรียกทุกครั้ง)
+      team = teamId; stopped = false; retry = 0; join();
+    },
     stop() {
       stopped = true; clearTimeout(retryT);
       if (sb && ch) sb.removeChannel(ch).catch(() => {});
