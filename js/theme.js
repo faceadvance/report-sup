@@ -1,5 +1,5 @@
 // ธีมสว่าง/มืด + สวิตช์ ☀️/🌙 + ฉากพระอาทิตย์ตก/ขึ้นตอนสลับ + เสียง (ยกจาก stock-live)
-import { Snd } from './sound.js?v=30';
+import { Snd } from './sound.js?v=35';
 const KEY = 'slTheme';
 const root = document.documentElement;
 const isDark = () => root.classList.contains('dark');
