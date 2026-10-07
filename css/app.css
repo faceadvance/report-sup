@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "18";
+  --build: "19";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -239,7 +239,7 @@ html.dark .sorter button[aria-pressed="true"] { background: #636366; }
 .list { display: flex; flex-direction: column; gap: .7rem; }
 .emp { position: relative; border-radius: var(--r-lg); background: var(--card); backdrop-filter: blur(20px) saturate(1.6); -webkit-backdrop-filter: blur(20px) saturate(1.6); border: 1px solid var(--line); box-shadow: var(--shadow); transition: box-shadow .3s, transform .3s var(--ease); animation: rise .55s var(--ease) both; will-change: transform; }
 .emp.open { box-shadow: var(--shadow-hi); }
-.emp-head { width: 100%; text-align: left; border: 0; background: none; cursor: pointer; padding: 1rem 1.05rem .9rem; border-radius: var(--r-lg); display: grid; gap: .7rem .4rem; grid-template-columns: repeat(4, 1fr); grid-template-areas: "who who who who" "calls ans orders con" "list uniq aov sales" "bar bar bar bar"; transition: transform .15s; }
+.emp-head { width: 100%; text-align: left; border: 0; background: none; cursor: pointer; padding: 1rem 1.05rem .9rem; border-radius: var(--r-lg); display: grid; gap: .7rem .4rem; grid-template-columns: repeat(4, 1fr); grid-template-areas: "who who who who" "list uniq calls ans" "orders aov sales con" "bar bar bar bar"; transition: transform .15s; }
 .emp-head:active { transform: scale(.993); }
 .who { grid-area: who; display: flex; align-items: center; gap: .7rem; min-width: 0; }
 .ava { position: relative; width: 2.7rem; height: 2.7rem; flex: none; border-radius: 50%; background: linear-gradient(180deg, #e8e8ed, #d2d2d7); color: #1d1d1f; display: grid; place-items: center; font-weight: 600; font-size: 1rem; }
@@ -275,9 +275,9 @@ html.dark .ava .st[data-s="none"] { background: #48484a; }
 .m .rg { display: block; font-size: .7rem; color: var(--sub); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .m-calls { grid-area: calls; } .m-ans { grid-area: ans; } .m-orders { grid-area: orders; } .m-con { grid-area: con; }
 .m-con .v { color: var(--hl); }
-.m-list, .m-uniq, .m-aov, .m-sales { padding-top: .65rem; border-top: 1px solid var(--line); }
+.m-orders, .m-aov, .m-sales, .m-con { padding-top: .65rem; border-top: 1px solid var(--line); }
 .m-list { grid-area: list; } .m-uniq { grid-area: uniq; } .m-aov { grid-area: aov; } .m-sales { grid-area: sales; }
-.m-list .v, .m-uniq .v, .m-aov .v, .m-sales .v { font-size: 1.02rem; font-weight: 600; color: var(--ink-2); }
+.m .v { font-size: 1.2rem; }
 .conbar { grid-area: bar; height: 4px; border-radius: 4px; background: var(--well); overflow: hidden; }
 .conbar i { display: block; height: 100%; width: 0; border-radius: 4px; background: var(--ink); transition: width 1s var(--ease); }
 html.dark .conbar i { background: var(--ink-2); }
@@ -487,7 +487,7 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
   .tabs { display: flex; width: 100%; }
   .tabs button { flex: 1; }
   .crow { padding: .8rem 0; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem .5rem;
-    grid-template-areas: "name name name name" "calls ans orders con" "list uniq aov sales"; }
+    grid-template-areas: "name name name name" "list uniq calls ans" "orders aov sales con"; }
   .crow .c-line { display: contents; }
   .crow .c-name { grid-area: name; }
   .crow .c-list { grid-area: list; text-align: left; }
