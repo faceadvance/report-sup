@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "23";
+  --build: "24";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -257,7 +257,7 @@ html.dark .ava .st[data-s="none"] { background: #48484a; }
 .who-txt b { display: flex; align-items: center; gap: .4rem; min-width: 0; font-weight: 600; font-size: 1.02rem; letter-spacing: -.01em; }
 .who-txt b .nm { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .who-txt .sub { display: flex !important; align-items: center; gap: .4rem; }
-.who-txt .stx { flex: none; display: inline-flex; }
+.who-txt .stx { flex: none; display: inline-flex; color: var(--faint); font-weight: 500; }
 .who-txt .stx:empty { display: none; }
 .who-txt .sub { display: block; font-size: .78rem; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: .05rem; }
 .who-txt .code { color: var(--ink-2); font-weight: 600; margin-right: .45rem; }
