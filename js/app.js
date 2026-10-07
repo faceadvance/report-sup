@@ -1,12 +1,12 @@
 // จุดเริ่ม: มี session → sup_me → dashboard · ไม่มี/หมดอายุ → หน้า login
-import { session, rpc, AuthError } from './api.js?v=24';
-import { renderAuth } from './auth.js?v=24';
-import { mountDashboard } from './views/dashboard.js?v=24';
-import { initTheme } from './theme.js?v=24';
+import { session, rpc, AuthError } from './api.js?v=26';
+import { renderAuth } from './auth.js?v=26';
+import { mountDashboard } from './views/dashboard.js?v=26';
+import { initTheme } from './theme.js?v=26';
 
 initTheme();
 
-window.SL_BUILD = '24';
+window.SL_BUILD = '26';
 const root = document.getElementById('app');
 let dash = null, booting = false;
 
