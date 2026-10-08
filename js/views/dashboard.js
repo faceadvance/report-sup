@@ -1,15 +1,15 @@
 // หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
-import { rpc, session, AuthError } from '../api.js?v=52';
-import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=52';
-import { Odo } from '../odometer.js?v=52';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=52';
-import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=52';
-import { createLive } from '../live.js?v=52';
-import { pickRange } from '../calendar.js?v=52';
-import { toast, toastText, burst, createEcg } from '../fx.js?v=52';
-import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=52';
-import { themeToggle, ping } from '../theme.js?v=52';
-import { Snd, soundButton } from '../sound.js?v=52';
+import { rpc, session, AuthError } from '../api.js?v=53';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=53';
+import { Odo } from '../odometer.js?v=53';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=53';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=53';
+import { createLive } from '../live.js?v=53';
+import { pickRange } from '../calendar.js?v=53';
+import { toast, toastText, burst, createEcg } from '../fx.js?v=53';
+import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=53';
+import { themeToggle, ping } from '../theme.js?v=53';
+import { Snd, soundButton } from '../sound.js?v=53';
 
 const METRICS = [
   ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],
@@ -59,8 +59,8 @@ export function mountDashboard(root, me, { onLogout }) {
   };
   const callAlerted = new Map();   // emp → รอบ 10 นาทีที่เตือนไปแล้ว
   const markCallSeen = (emp, since) => { if (!callAlerted.has(emp)) callAlerted.set(emp, Math.floor((Date.now() - since) / 600000)); };
-  // โหมด "ทุกทีม" (team = 0): บัญชีที่ดูได้ ≥ 2 ทีม → รวมทุกคนจากทุกทีมที่มีสิทธิ์ในหน้าเดียว
-  const ALL = 0, canAll = me.teams.length >= 2;
+  // โหมด "ทุกทีม" (team = 0): เฉพาะบัญชีที่ดูได้ทุกทีมที่มีจริง (sup_me.all_teams) → รวมทุกคนในหน้าเดียว
+  const ALL = 0, canAll = me.all_teams === true;
   const savedTeam = Number(localStorage.getItem('sl_team'));
   if (me.teams.some((t) => t.id === savedTeam) || (canAll && savedTeam === ALL && localStorage.getItem('sl_team') !== null)) S.team = savedTeam;
   const minDay = () => S.me.start_date || addDays(S.today, -60);
