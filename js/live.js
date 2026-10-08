@@ -1,6 +1,6 @@
 // Realtime: private channel 'sup:team:<id>' (RLS ตรวจสิทธิ์ทีม) · สัญญาณมีแค่ {emp,t}
 // หลุด → ต่อใหม่แบบ backoff · กลับมาเปิดแอป (visibilitychange) → ต่อใหม่ + ให้แอปดึงข้อมูลทั้งหมด
-import { SB_URL, SB_KEY } from './config.js?v=54';
+import { SB_URL, SB_KEY } from './config.js?v=55';
 
 // โหลดไลบรารี supabase (UMD ในเว็บเราเอง) เฉพาะตอนต้องใช้ realtime — หน้า login ไม่ต้องรอไฟล์นี้
 let libP = null;
@@ -9,7 +9,7 @@ function loadLib() {
   if (!libP) {
     libP = new Promise((res, rej) => {
       const s = document.createElement('script');
-      s.src = 'js/vendor/supabase.js?v=54';
+      s.src = 'js/vendor/supabase.js?v=55';
       s.async = true;
       s.onload = () => (window.supabase && window.supabase.createClient ? res(window.supabase) : rej(new Error('lib')));
       s.onerror = () => { libP = null; rej(new Error('lib')); };
@@ -19,7 +19,7 @@ function loadLib() {
   return libP;
 }
 
-export function createLive({ getToken, onSignal, onCall, onStatus, onResume }) {
+export function createLive({ getToken, onSignal, onCall, onNote, onStatus, onResume }) {
   // หลายทีมพร้อมกันได้ (โหมด "ทุกทีม" = 1 ช่องต่อทีม) · gen = ชุดช่องปัจจุบัน — ชุดเก่าที่ถูกแทนแล้วไม่มีผลกับสถานะ
   let sb = null, gen = null, teams = [], retry = 0, retryT = 0, stopped = true, status = 'idle';
   const setStatus = (s) => { if (s !== status) { status = s; onStatus(s); } };
@@ -49,7 +49,8 @@ export function createLive({ getToken, onSignal, onCall, onStatus, onResume }) {
     for (const t of teams) {
       const ch = c.channel('sup:team:' + t, { config: { private: true } })
         .on('broadcast', { event: 'changed' }, (m) => { if (my === gen && m.payload?.emp) onSignal(m.payload); })
-        .on('broadcast', { event: 'call' }, (m) => { if (my === gen && m.payload?.emp) onCall?.(m.payload); });   // กำลังโทร {emp,c,since,camp}
+        .on('broadcast', { event: 'call' }, (m) => { if (my === gen && m.payload?.emp) onCall?.(m.payload); })   // กำลังโทร {emp,c,since,camp}
+        .on('broadcast', { event: 'note' }, (m) => { if (my === gen && m.payload?.id) onNote?.(m.payload); });   // แจ้งเตือน {id,kind,emp,name,data,t}
       my.chs.push(ch);
       ch.subscribe((s) => {
         if (my !== gen) return;
