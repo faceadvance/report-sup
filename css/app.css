@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "57";
+  --build: "58";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -226,6 +226,13 @@ html.dark .seg .ind { background: #636366; box-shadow: none; }
 .listbar { display: flex; align-items: center; justify-content: space-between; gap: .6rem; margin: 0 0 .7rem; flex-wrap: wrap; }
 .listbar h3 { margin: 0; font-size: 1.35rem; font-weight: 700; letter-spacing: -.02em; }
 .listbar h3 span { color: var(--sub); font-weight: 500; font-size: .95rem; margin-left: .4rem; letter-spacing: 0; }
+/* จำนวนกำลังโทร (ไม่เด่น): ตัวหนังสือสีรอง ขนาดเท่า "n คน" · ไอคอนส้มเล็กสื่อถึงป้ายกำลังโทร */
+.listbar h3 .oncall { display: inline-flex; align-items: center; gap: .22rem; margin-left: .55rem; }
+.listbar h3 .oncall[hidden] { display: none; }
+.listbar h3 .oncall span { margin: 0; font-size: inherit; }
+.listbar h3 .oncall b { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.listbar h3 .oncall svg { width: .8rem; height: .8rem; color: #f59e0b; flex: none; }
+html.dark .listbar h3 .oncall svg { color: #ff9f0a; }
 .sorter { display: inline-flex; align-items: center; gap: .15rem; padding: 3px; border-radius: 10px; background: var(--well); font-size: .78rem; }
 .sorter > span { color: var(--sub); padding: 0 .4rem 0 .5rem; }
 .sorter button { border: 0; background: none; color: var(--sub); padding: .3rem .6rem; border-radius: 8px; cursor: pointer; font-size: .78rem; font-weight: 500; }

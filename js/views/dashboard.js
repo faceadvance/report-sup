@@ -1,16 +1,16 @@
 // หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
-import { rpc, session, AuthError } from '../api.js?v=57';
-import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=57';
-import { Odo } from '../odometer.js?v=57';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=57';
-import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=57';
-import { createLive } from '../live.js?v=57';
-import { createNotifyCenter, noteHtml, noteIcon } from '../notify.js?v=57';
-import { pickRange } from '../calendar.js?v=57';
-import { toast, toastText, burst, createEcg, alarmShake } from '../fx.js?v=57';
-import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=57';
-import { themeToggle, ping } from '../theme.js?v=57';
-import { Snd, soundButton } from '../sound.js?v=57';
+import { rpc, session, AuthError } from '../api.js?v=58';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=58';
+import { Odo } from '../odometer.js?v=58';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=58';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=58';
+import { createLive } from '../live.js?v=58';
+import { createNotifyCenter, noteHtml, noteIcon } from '../notify.js?v=58';
+import { pickRange } from '../calendar.js?v=58';
+import { toast, toastText, burst, createEcg, alarmShake } from '../fx.js?v=58';
+import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=58';
+import { themeToggle, ping } from '../theme.js?v=58';
+import { Snd, soundButton } from '../sound.js?v=58';
 
 const METRICS = [
   ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],
@@ -24,7 +24,8 @@ const text = {
   aov: (v) => (v === null ? '—' : money(v)), sales: (v) => money(v || 0), con: (v) => (v === null ? '—' : pct(v)),
 };
 // ป้ายกำลังโทร (ไอคอนโทรศัพท์สั่นแบบปุ่ม "กำลังโทร..." ในระบบหลัก)
-const CALLING = `<span class="calling" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M15 3.5a6 6 0 0 1 5.5 5.5M15 7a2.6 2.6 0 0 1 2 2"/></svg><span>กำลังโทร</span></span>`;
+const PHONE = `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M15 3.5a6 6 0 0 1 5.5 5.5M15 7a2.6 2.6 0 0 1 2 2"/></svg>`;
+const CALLING = `<span class="calling" hidden>${PHONE}<span>กำลังโทร</span></span>`;
 const CALL_LONG_MS = 60 * 60 * 1000, CALL_HOLD_MS = 5 * 60 * 1000;
 // สีป้ายกำลังโทร: 5 นาทีแรกส้มคงที่ → ค่อย ๆ เข้มขึ้นจนเป็นแดงที่ 60 นาที (0 = ส้ม · 1 = แดง)
 const callHeat = (since) => Math.max(0, Math.min(1, (Date.now() - since - CALL_HOLD_MS) / (CALL_LONG_MS - CALL_HOLD_MS)));
@@ -93,7 +94,7 @@ export function mountDashboard(root, me, { onLogout }) {
       ${[['uniq', 'ชื่อที่โทร', ''], ['calls', 'สายโทร', 'k-call'], ['ans', 'รับสาย', ''], ['orders', 'ออเดอร์', 'k-ord'], ['aov', 'AOV<i class="lx"> (บาท)</i>', ''], ['sales', 'ยอดขาย<i class="lx"> (บาท)</i>', 'k-sales'], ['con', 'Con%', 'k-con']]
         .map(([k, l, c], i) => `<div class="kpi ${c}" style="animation-delay:${i * 60}ms"><label>${l}</label><div class="kv"><span class="v" data-k="${k}"></span>${SUM_HK[k] ? `<span class="kd" data-kd="${k}"></span>` : ''}</div><small data-sub="${k}">&nbsp;</small></div>`).join('')}
     </section>
-    <div class="listbar"><h3>ลูกทีม<span class="cnt"></span></h3>
+    <div class="listbar"><h3>ลูกทีม<span class="cnt"></span><span class="oncall" hidden>${PHONE}<span>กำลังโทร <b>0</b></span></span></h3>
       <div class="sorter" role="group" aria-label="เรียงตาม"><span>เรียง</span>
         ${[['code', 'LIVE·รหัส'], ['orders', 'ออเดอร์'], ['sales', 'ยอดขาย'], ['con', 'Con%'], ['calls', 'สาย']].map(([k, l]) => `<button data-sort="${k}">${l}</button>`).join('')}</div></div>
     <div class="thead" aria-hidden="true"><span class="th-emp">พนักงาน</span><span class="th-tt">Talktime</span>${METRICS.map(([k, l]) => `<span class="${HK[k] ? 'has-dl' : ''}">${l}</span>`).join('')}<span></span></div>
@@ -456,7 +457,7 @@ export function mountDashboard(root, me, { onLogout }) {
       if (my !== S.seq) return;
       S.hr = indexHourly(hr); S.hour = hr && hr.clock_hour;
       S.calling = new Map((cl || []).map((r) => [r.emp, { since: Date.parse(r.since) || Date.now(), camp: r.camp || null }]));
-      ecg.setCalling(isLive() ? S.calling.size : 0);
+      paintCalling();
       const firstPaint = !S.rows.size;
       if (firstPaint) list.innerHTML = '';
       S.members = mem; S.idx = indexStats(st); S.att = indexAtt(at); S.tl.clear();
@@ -532,13 +533,19 @@ export function mountDashboard(root, me, { onLogout }) {
   function showChip() { chip.classList.add('show'); }
   function hideChip() { chip.classList.remove('show'); }
 
+  // จำนวนคนกำลังโทร → เส้นชีพจร + ตัวเลขเบา ๆ ข้าง "ลูกทีม n คน" (Live เท่านั้น · 0 คน = ซ่อน)
+  function paintCalling() {   // function declaration (hoist) · หา element ทุกครั้ง กันเรียกก่อนบรรทัดนี้รัน
+    const n = isLive() ? S.calling.size : 0, el = $('.listbar .oncall');
+    ecg.setCalling(n);
+    if (el) { el.hidden = !n; el.querySelector('b').textContent = int(n); el.title = `กำลังโทรอยู่ ${int(n)} คน`; }
+  }
   const live = createLive({
     getToken: () => session.get()?.token,
     onSignal,
     onCall: (p) => {
       if (!isLive()) return;
       if (p.c) { S.calling.set(p.emp, { since: Date.parse(p.since) || Date.now(), camp: p.camp || null }); ecg.push(3); } else S.calling.delete(p.emp);   // เริ่มโทร = กระตุกเล็ก
-      ecg.setCalling(S.calling.size);
+      paintCalling();
       S.rows.get(p.emp)?.updateCall();
     },
     onStatus: (s) => {
@@ -550,7 +557,7 @@ export function mountDashboard(root, me, { onLogout }) {
   });
   function setLive() {
     pulse.classList.toggle('history', !isLive());
-    ecg.setActive(isLive()); ecg.setCalling(isLive() ? S.calling.size : 0);
+    ecg.setActive(isLive()); paintCalling();
     if (isLive() && S.team !== null) live.watch(S.team === ALL ? me.teams.map((t) => t.id) : [S.team]); else live.stop();
   }
 
