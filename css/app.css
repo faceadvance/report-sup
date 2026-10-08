@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "53";
+  --build: "54";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -685,3 +685,55 @@ html.dark .calling.long { background: #ff453a; color: #fff; }
 
 /* โหมด "ทุกทีม" */
 .seg.team button .tdot.all { background: conic-gradient(#f59e0b 0 25%, #0071e3 0 50%, #af52de 0 75%, #34c759 0); }
+
+/* ════════ ศูนย์แจ้งเตือนวันนี้ · คอม = ปุ่มลอยมุมขวาล่าง + กล่อง · มือถือ = แถบดึงขอบขวา + แถบด้านข้าง ════════ */
+.nc-fab { position: fixed; right: 1.5rem; bottom: calc(1.5rem + var(--safe-b)); z-index: 70; width: 3.25rem; height: 3.25rem; border-radius: 50%; border: 1px solid var(--line); background: var(--card-solid); color: var(--ink); box-shadow: var(--shadow-hi); display: grid; place-items: center; cursor: pointer; transition: transform .2s var(--spring), box-shadow .2s; }
+.nc-fab:hover { transform: translateY(-2px); }
+.nc-fab:active { transform: scale(.94); }
+.nc-fab svg { width: 1.35rem; height: 1.35rem; }
+html.nc-open .nc-fab { color: var(--accent); }
+.nc-dot { position: absolute; width: .62rem; height: .62rem; border-radius: 50%; background: #ff3b30; border: 2px solid var(--card-solid); opacity: 0; transform: scale(.4); transition: opacity .2s, transform .3s var(--spring); }
+.nc-fab .nc-dot { top: .62rem; right: .72rem; }
+.unread .nc-dot { opacity: 1; transform: none; animation: ncDot 2s ease-in-out infinite; }
+@keyframes ncDot { 50% { box-shadow: 0 0 0 4px #ff3b3033; } }
+.unread.nc-fab svg { animation: ncRing 2.4s ease-in-out infinite; transform-origin: 50% 10%; }
+@keyframes ncRing { 0%, 70%, 100% { transform: rotate(0); } 75% { transform: rotate(14deg); } 80% { transform: rotate(-12deg); } 85% { transform: rotate(8deg); } 90% { transform: rotate(-5deg); } }
+.nc-tab { display: none; }
+.nc-ov { display: none; }
+.nc-panel { position: fixed; right: 1.5rem; bottom: calc(1.5rem + 3.25rem + .8rem + var(--safe-b)); z-index: 71; width: 23rem; max-height: min(34rem, 72vh); display: flex; flex-direction: column; border-radius: 22px; background: var(--card-solid); border: 1px solid var(--line); box-shadow: var(--shadow-hi); overflow: hidden;
+  opacity: 0; visibility: hidden; transform: translateY(12px) scale(.97); transform-origin: 100% 100%; transition: opacity .22s, transform .35s var(--spring), visibility 0s .35s; }
+html.nc-open .nc-panel { opacity: 1; visibility: visible; transform: none; transition: opacity .22s, transform .35s var(--spring), visibility 0s; }
+.nc-panel header { display: flex; align-items: center; gap: .7rem; padding: 1rem 1rem .85rem 1.1rem; border-bottom: 1px solid var(--line); }
+.nc-panel header .nc-ico { width: 2.1rem; height: 2.1rem; border-radius: 11px; display: grid; place-items: center; background: var(--accent-soft, color-mix(in srgb, var(--accent) 14%, transparent)); color: var(--accent); flex: none; }
+.nc-panel header .nc-ico svg { width: 1.1rem; height: 1.1rem; }
+.nc-panel header b { display: block; font-size: 1rem; font-weight: 700; }
+.nc-panel header small { display: block; font-size: .74rem; color: var(--sub); }
+.nc-panel header div { flex: 1; min-width: 0; }
+.nc-x { width: 2rem; height: 2rem; border-radius: 50%; border: 0; background: var(--well); color: var(--sub); cursor: pointer; display: grid; place-items: center; }
+.nc-x svg { width: .95rem; height: .95rem; }
+.nc-list { list-style: none; margin: 0; padding: .4rem; overflow-y: auto; overscroll-behavior: contain; flex: 1; }
+.nc-item { position: relative; display: flex; gap: .7rem; align-items: flex-start; padding: .7rem .75rem; border-radius: 14px; cursor: pointer; transition: background .15s; }
+.nc-item:hover { background: var(--well); }
+.nc-item + .nc-item { margin-top: .1rem; }
+.nc-item.new { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.nc-item.new::before { content: ""; position: absolute; left: .2rem; top: 50%; width: .3rem; height: .3rem; margin-top: -.15rem; border-radius: 50%; background: var(--accent); }
+.nc-i { font-size: 1.25rem; line-height: 1.3; flex: none; }
+.nc-tx { min-width: 0; }
+.nc-tx p { margin: 0; font-size: .88rem; line-height: 1.45; color: var(--ink); }
+.nc-tx time { display: block; margin-top: .15rem; font-size: .72rem; color: var(--sub); font-variant-numeric: tabular-nums; }
+.nc-empty { padding: 2.4rem 1rem; text-align: center; color: var(--sub); font-size: .9rem; line-height: 1.6; }
+.nc-empty small { font-size: .78rem; color: var(--faint); }
+@media (max-width: 600px) {
+  .nc-fab { display: none; }
+  .nc-tab { display: grid; place-items: center; position: fixed; right: 0; top: 50%; z-index: 70; width: 1.65rem; height: 3.6rem; margin-top: -1.8rem; padding: 0; border: 1px solid var(--line); border-right: 0; border-radius: 12px 0 0 12px; background: var(--card-solid); color: var(--sub); box-shadow: -4px 6px 18px #0000001f; cursor: pointer; transition: width .2s var(--spring); }
+  .nc-tab:active { width: 2rem; }
+  .nc-tab svg { width: 1rem; height: 1rem; }
+  .nc-tab .nc-dot { top: -.25rem; left: -.25rem; }
+  .nc-ov { display: block; position: fixed; inset: 0; z-index: 101; background: #00000059; opacity: 0; pointer-events: none; transition: opacity .3s; }
+  html.nc-open .nc-ov { opacity: 1; pointer-events: auto; }
+  .nc-panel { right: 0; top: 0; bottom: 0; z-index: 102;   /* เหนือ toast (100) ตอนเปิดแถบ */ width: min(86vw, 22rem); max-height: none; border-radius: 22px 0 0 22px; border-right: 0; padding-top: var(--safe-t); padding-bottom: var(--safe-b);
+    opacity: 1; visibility: hidden; transform: translateX(104%); transition: transform .38s var(--ease), visibility 0s .38s; }
+  html.nc-open .nc-panel { visibility: visible; transform: none; transition: transform .38s var(--ease), visibility 0s; }
+  html.nc-open body { overflow: hidden; }
+}
+@media (prefers-reduced-motion: reduce) { .unread .nc-dot, .unread.nc-fab svg { animation: none; } }
