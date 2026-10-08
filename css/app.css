@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "56";
+  --build: "57";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -675,13 +675,10 @@ html.dark .calling.long { background: #ff453a; color: #fff; }
 }
 @media (max-width: 360px) { .otp-dots { gap: .35rem; } .otp-dots i { width: 2.25rem; } }   /* จอแคบ 320–360: ช่อง OTP 6 ช่องไม่ล้นการ์ด */
 
-/* ⏰ เตือนโทรนาน (ทุก 10 นาที): การ์ดพนักงานสั่น */
-.emp.alarm { animation: alarmShake .9s cubic-bezier(.36, .07, .19, .97) both; }
-@keyframes alarmShake {
-  10%, 90% { transform: translateX(-2px); } 20%, 80% { transform: translateX(4px); }
-  30%, 50%, 70% { transform: translateX(-7px); } 40%, 60% { transform: translateX(7px); }
-}
-@media (prefers-reduced-motion: reduce) { .emp.alarm { animation: none; outline: 2px solid #f59e0b; } }
+/* ⏰ เตือนโทรนาน (ทุก 10 นาที): การ์ดพนักงานสั่น = Web Animations ใน fx.js alarmShake()
+   ห้ามใส่ animation ที่ .emp.alarm — แทนที่ rise ของการ์ด แล้วตอนถอด class rise เล่นซ้ำ = การ์ด/ป้ายกระพริบ
+   class นี้ใช้แค่ตอนสั่นไม่ได้ (ลดการเคลื่อนไหว/sl-safe) → ขอบส้มแทน */
+.emp.alarm { outline: 2px solid #f59e0b; outline-offset: -1px; }
 
 /* โหมด "ทุกทีม" */
 .seg.team button .tdot.all { background: conic-gradient(#f59e0b 0 25%, #0071e3 0 50%, #af52de 0 75%, #34c759 0); }

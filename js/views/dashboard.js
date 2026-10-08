@@ -1,16 +1,16 @@
 // หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
-import { rpc, session, AuthError } from '../api.js?v=56';
-import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=56';
-import { Odo } from '../odometer.js?v=56';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=56';
-import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=56';
-import { createLive } from '../live.js?v=56';
-import { createNotifyCenter, noteHtml, noteIcon } from '../notify.js?v=56';
-import { pickRange } from '../calendar.js?v=56';
-import { toast, toastText, burst, createEcg } from '../fx.js?v=56';
-import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=56';
-import { themeToggle, ping } from '../theme.js?v=56';
-import { Snd, soundButton } from '../sound.js?v=56';
+import { rpc, session, AuthError } from '../api.js?v=57';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=57';
+import { Odo } from '../odometer.js?v=57';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=57';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=57';
+import { createLive } from '../live.js?v=57';
+import { createNotifyCenter, noteHtml, noteIcon } from '../notify.js?v=57';
+import { pickRange } from '../calendar.js?v=57';
+import { toast, toastText, burst, createEcg, alarmShake } from '../fx.js?v=57';
+import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=57';
+import { themeToggle, ping } from '../theme.js?v=57';
+import { Snd, soundButton } from '../sound.js?v=57';
 
 const METRICS = [
   ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],
@@ -601,7 +601,7 @@ export function mountDashboard(root, me, { onLogout }) {
     Snd.longCall();
     try { navigator.vibrate?.([220, 120, 220, 120, 380]); } catch { /* บางเครื่องไม่ให้สั่น */ }
     const row = S.rows.get(n.emp);
-    if (row) { row.el.classList.remove('alarm'); void row.el.offsetWidth; row.el.classList.add('alarm'); setTimeout(() => row.el.classList.remove('alarm'), 1300); }
+    if (row) alarmShake(row.el);
   }
 
   // ข้ามเที่ยงคืน + อัปเดตเวลา "โทรล่าสุด"
