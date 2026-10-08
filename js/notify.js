@@ -1,7 +1,7 @@
 // ศูนย์แจ้งเตือน (วันนี้) · รายการมาจากฐานข้อมูล (sup_notifications) → ทุกเครื่องของบัญชีเห็นชุดเดียวกัน ไม่ซ้ำ
 // คอม = ปุ่มลอยมุมขวาล่าง → กล่องรายการ · มือถือ = แถบดึงที่ขอบขวา → แถบด้านข้างเลื่อนออกมา
 // จุดแดง = มีรายการใหม่กว่า seen_at ของบัญชี · เปิดดูจากเครื่องไหนก็ได้ → จุดหายทุกเครื่อง (เครื่องอื่นเช็คทุก 1 นาที/ตอนกลับมาที่แอป)
-import { esc, money } from './fmt.js?v=55';
+import { esc, money } from './fmt.js?v=56';
 
 const BELL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';
 const LEFT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>';
@@ -37,7 +37,7 @@ export function createNotifyCenter({ fetchNotes, markSeen, onPick } = {}) {
   const ov = document.createElement('div'); ov.className = 'nc-ov';
   const panel = document.createElement('aside');
   panel.className = 'nc-panel'; panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', 'แจ้งเตือนวันนี้');
-  panel.innerHTML = `<header><span class="nc-ico">${BELL}</span><div><b>แจ้งเตือนวันนี้</b><small class="nc-cnt"></small></div><button class="nc-x" type="button" aria-label="ปิด">${CLOSE}</button></header><ol class="nc-list"></ol>`;
+  panel.innerHTML = `<header><span class="nc-ico">${BELL}</span><div><b>แจ้งเตือนวันนี้</b><small class="nc-cnt"></small></div><button class="nc-x" type="button" aria-label="ปิด">${CLOSE}</button></header><ol class="nc-list"></ol><button class="nc-xb" type="button" aria-label="ปิด">${CLOSE}</button>`;
   document.body.append(fab, tab, ov, panel);
   const list = panel.querySelector('.nc-list'), cnt = panel.querySelector('.nc-cnt');
 
@@ -73,6 +73,7 @@ export function createNotifyCenter({ fetchNotes, markSeen, onPick } = {}) {
   tab.addEventListener('click', () => setOpen(true));
   ov.addEventListener('click', () => setOpen(false));
   panel.querySelector('.nc-x').addEventListener('click', () => setOpen(false));
+  panel.querySelector('.nc-xb').addEventListener('click', () => setOpen(false));   // มือถือ: ปุ่มปิดมุมขวาล่าง (นิ้วโป้งถึง)
   const onKey = (e) => { if (e.key === 'Escape' && open) setOpen(false); };
   const onDoc = (e) => { if (open && !panel.contains(e.target) && !fab.contains(e.target) && !tab.contains(e.target) && matchMedia('(min-width: 601px)').matches) setOpen(false); };
   const onVis = () => { if (!document.hidden) refresh(); };

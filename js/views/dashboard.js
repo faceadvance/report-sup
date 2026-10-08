@@ -1,16 +1,16 @@
 // หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
-import { rpc, session, AuthError } from '../api.js?v=55';
-import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=55';
-import { Odo } from '../odometer.js?v=55';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=55';
-import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=55';
-import { createLive } from '../live.js?v=55';
-import { createNotifyCenter, noteHtml, noteIcon } from '../notify.js?v=55';
-import { pickRange } from '../calendar.js?v=55';
-import { toast, toastText, burst, createEcg } from '../fx.js?v=55';
-import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=55';
-import { themeToggle, ping } from '../theme.js?v=55';
-import { Snd, soundButton } from '../sound.js?v=55';
+import { rpc, session, AuthError } from '../api.js?v=56';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=56';
+import { Odo } from '../odometer.js?v=56';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=56';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=56';
+import { createLive } from '../live.js?v=56';
+import { createNotifyCenter, noteHtml, noteIcon } from '../notify.js?v=56';
+import { pickRange } from '../calendar.js?v=56';
+import { toast, toastText, burst, createEcg } from '../fx.js?v=56';
+import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=56';
+import { themeToggle, ping } from '../theme.js?v=56';
+import { Snd, soundButton } from '../sound.js?v=56';
 
 const METRICS = [
   ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],
