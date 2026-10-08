@@ -1,7 +1,7 @@
 // ปฏิทินเลือกช่วง: แตะวันเริ่ม → แตะวันจบ · แตะวันเดิม 2 ครั้ง = วันเดียว · ไม่เกิน maxDays · ไม่ก่อน min/หลัง max
-import { TH_MON_FULL, TH_DOW, thDate, addDays, diffDays } from './fmt.js?v=59';
-import { LEFT, RIGHT } from './icons.js?v=59';
-import { Snd } from './sound.js?v=59';
+import { TH_MON_FULL, TH_DOW, thDate, addDays, diffDays } from './fmt.js?v=60';
+import { LEFT, RIGHT } from './icons.js?v=60';
+import { Snd } from './sound.js?v=60';
 
 export function pickRange({ from, to, min, max, maxDays = 31 }) {
   return new Promise((resolve) => {

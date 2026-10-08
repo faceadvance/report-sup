@@ -1,16 +1,16 @@
 // หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
-import { rpc, session, AuthError } from '../api.js?v=59';
-import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=59';
-import { Odo } from '../odometer.js?v=59';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=59';
-import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=59';
-import { createLive } from '../live.js?v=59';
-import { createNotifyCenter, noteHtml, noteIcon } from '../notify.js?v=59';
-import { pickRange } from '../calendar.js?v=59';
-import { toast, toastText, burst, createEcg, alarmShake } from '../fx.js?v=59';
-import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=59';
-import { themeToggle, ping } from '../theme.js?v=59';
-import { Snd, soundButton } from '../sound.js?v=59';
+import { rpc, session, AuthError } from '../api.js?v=60';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=60';
+import { Odo } from '../odometer.js?v=60';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=60';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=60';
+import { createLive } from '../live.js?v=60';
+import { createNotifyCenter, noteHtml, noteIcon } from '../notify.js?v=60';
+import { pickRange } from '../calendar.js?v=60';
+import { toast, toastText, burst, createEcg, alarmShake } from '../fx.js?v=60';
+import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=60';
+import { themeToggle, ping } from '../theme.js?v=60';
+import { Snd, soundButton } from '../sound.js?v=60';
 
 const METRICS = [
   ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],
@@ -539,11 +539,12 @@ export function mountDashboard(root, me, { onLogout }) {
   function hideChip() { chip.classList.remove('show'); }
 
   // จำนวนคนกำลังโทร → เส้นชีพจร + ตัวเลขเบา ๆ ข้าง "ลูกทีม n คน" (Live เท่านั้น · 0 คน = ซ่อน)
-  // + ความนาน → รูปคลื่น: ค่าเฉลี่ยสีป้ายของทุกคนที่กำลังโทร (0 ส้มทุกคน → 1 แดงทุกคน) · เรียกซ้ำทุก 30 วิ จาก clock
+  // + ความนาน → รูปคลื่น: สัดส่วนคนที่โทรเกิน 5 นาที (0 = ทุกคน ≤5 นาที → 1 = ทุกคนเกิน 5 นาที) · เรียกซ้ำทุก 30 วิ จาก clock
+  //   ใช้ 5 นาที (ไม่ใช่สีป้าย) เพราะสายรับจริงครึ่งหนึ่งจบใน 50 วิ · เกิน 5 นาทีมีแค่ ~6% = "สายยาว" จริง · เกิน 30 นาที 0.12% (สีป้ายเฉลี่ยแทบไม่ขยับ)
   function paintCalling() {   // function declaration (hoist) · หา element ทุกครั้ง กันเรียกก่อนบรรทัดนี้รัน
     const n = isLive() ? S.calling.size : 0, el = $('.listbar .oncall');
     ecg.setCalling(n);
-    ecg.setStrain(n ? [...S.calling.values()].reduce((a, c) => a + callHeat(c.since), 0) / n : 0);
+    ecg.setStrain(n ? [...S.calling.values()].filter((c) => Date.now() - c.since > CALL_HOLD_MS).length / n : 0);
     if (el) { el.hidden = !n; el.querySelector('b').textContent = int(n); el.title = `กำลังโทรอยู่ ${int(n)} คน`; }
   }
   const live = createLive({
