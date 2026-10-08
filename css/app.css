@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "58";
+  --build: "59";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -617,14 +617,14 @@ html.sl-safe .auth { overflow: visible !important; position: static !important; 
   .summary { margin-bottom: 1.1rem; }
 }
 
-/* ════════ ป้าย "กำลังโทร" (แบบปุ่มกำลังโทรในระบบหลัก: ส้ม · ไอคอนสั่น · เต้นเบาๆ · ไม่มีแสงฟุ้ง) · เกิน 60 นาที → แดง ════════ */
+/* ════════ ป้าย "กำลังโทร" (แบบปุ่มกำลังโทรในระบบหลัก: ส้ม · ไอคอนสั่น · เต้นเบาๆ · ไม่มีแสงฟุ้ง) · 30 นาที → แดง · 30+ ไอคอนสั่นถี่ขึ้น (--shake จาก JS) ════════ */
 .calling { flex: none; display: inline-flex; align-items: center; gap: .25rem; padding: .05rem .5rem .05rem .4rem; border-radius: 999px; font-size: .68rem; font-weight: 600; line-height: 1.5; letter-spacing: 0; color: #fff; background: #f59e0b; animation: callPulse 1.5s ease-in-out infinite; }
 .calling[hidden] { display: none !important; }
-.calling svg { width: .85rem; height: .85rem; animation: callShake 1s ease-in-out infinite; transform-origin: 50% 50%; }
+.calling svg { width: .85rem; height: .85rem; animation: callShake var(--shake, 1s) ease-in-out infinite; transform-origin: 50% 50%; }
 .calling.long { background: #ef4444; }
 html.dark .calling { background: #ff9f0a; color: #1c1c1e; }
 html.dark .calling.long { background: #ff453a; color: #fff; }
-/* ค่อย ๆ จากส้มเป็นแดงตามเวลาที่คุย (--heat 0→1 จาก JS: 5 นาทีแรก 0 · 60 นาที = 1) · เบราว์เซอร์เก่าไม่รองรับ color-mix = ใช้ส้ม/แดงด้านบน */
+/* ค่อย ๆ จากส้มเป็นแดงตามเวลาที่คุย (--heat 0→1 จาก JS: 5 นาทีแรก 0 · 30 นาที = 1) · เบราว์เซอร์เก่าไม่รองรับ color-mix = ใช้ส้ม/แดงด้านบน */
 @supports (background: color-mix(in srgb, red 50%, blue)) {
   .calling { background: color-mix(in srgb, #ef4444 calc(var(--heat, 0) * 100%), #f59e0b); }
   html.dark .calling { background: color-mix(in srgb, #ff453a calc(var(--heat, 0) * 100%), #ff9f0a); }

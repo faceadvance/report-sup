@@ -1,16 +1,16 @@
 // หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
-import { rpc, session, AuthError } from '../api.js?v=58';
-import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=58';
-import { Odo } from '../odometer.js?v=58';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=58';
-import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=58';
-import { createLive } from '../live.js?v=58';
-import { createNotifyCenter, noteHtml, noteIcon } from '../notify.js?v=58';
-import { pickRange } from '../calendar.js?v=58';
-import { toast, toastText, burst, createEcg, alarmShake } from '../fx.js?v=58';
-import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=58';
-import { themeToggle, ping } from '../theme.js?v=58';
-import { Snd, soundButton } from '../sound.js?v=58';
+import { rpc, session, AuthError } from '../api.js?v=59';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=59';
+import { Odo } from '../odometer.js?v=59';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=59';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=59';
+import { createLive } from '../live.js?v=59';
+import { createNotifyCenter, noteHtml, noteIcon } from '../notify.js?v=59';
+import { pickRange } from '../calendar.js?v=59';
+import { toast, toastText, burst, createEcg, alarmShake } from '../fx.js?v=59';
+import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=59';
+import { themeToggle, ping } from '../theme.js?v=59';
+import { Snd, soundButton } from '../sound.js?v=59';
 
 const METRICS = [
   ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],
@@ -26,9 +26,14 @@ const text = {
 // ป้ายกำลังโทร (ไอคอนโทรศัพท์สั่นแบบปุ่ม "กำลังโทร..." ในระบบหลัก)
 const PHONE = `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M15 3.5a6 6 0 0 1 5.5 5.5M15 7a2.6 2.6 0 0 1 2 2"/></svg>`;
 const CALLING = `<span class="calling" hidden>${PHONE}<span>กำลังโทร</span></span>`;
-const CALL_LONG_MS = 60 * 60 * 1000, CALL_HOLD_MS = 5 * 60 * 1000;
-// สีป้ายกำลังโทร: 5 นาทีแรกส้มคงที่ → ค่อย ๆ เข้มขึ้นจนเป็นแดงที่ 60 นาที (0 = ส้ม · 1 = แดง)
-const callHeat = (since) => Math.max(0, Math.min(1, (Date.now() - since - CALL_HOLD_MS) / (CALL_LONG_MS - CALL_HOLD_MS)));
+const CALL_LONG_MS = 30 * 60 * 1000, CALL_HOLD_MS = 5 * 60 * 1000;
+// สีป้ายกำลังโทร: 5 นาทีแรกส้มคงที่ → เข้มขึ้นจนแดงที่ 30 นาที (0 = ส้ม · 1 = แดง)
+// โค้ง √ = ช่วงต้นเปลี่ยนเร็ว: 10 นาที ≈ 0.45 (เห็นชัดว่าเริ่มไปทางแดง) · 17.5 นาที ≈ 0.71 · 24 นาที ≈ 0.87
+const callHeat = (since) => Math.sqrt(Math.max(0, Math.min(1, (Date.now() - since - CALL_HOLD_MS) / (CALL_LONG_MS - CALL_HOLD_MS))));
+// ไอคอนสั่น: <30 นาที = 1 วิ/รอบ (เดิม) · 30 นาทีขึ้นไป ยิ่งนานยิ่งถี่ ทุก 10 นาที เร็วขึ้น 0.1 วิ · ตันที่ 0.5 วิ (80 นาทีขึ้นไป = ถี่ 2 เท่า)
+// เปลี่ยนเป็นขั้น (ไม่ต่อเนื่อง) — เปลี่ยน duration ของแอนิเมชันที่กำลังเล่น = จังหวะกระตุก 1 ครั้ง · ขั้นละ 10 นาทีจึงแทบไม่เห็น
+const callShake = (since) => { const m = (Date.now() - since) / 60000; return m < 30 ? '1s' : `${Math.max(.5, 1 - .1 * Math.floor((m - 30) / 10)).toFixed(1)}s`; };
+const paintCallBadge = (b, since, long, heat) => { b.classList.toggle('long', long); b.style.setProperty('--heat', heat); b.classList.toggle('hot', heat >= .45); b.style.setProperty('--shake', since ? callShake(since) : '1s'); };
 const NO_CAMP = 'ระบุแคมเปญไม่ได้';
 const HK = { calls: 'calls', ans: 'answered', uniq: 'uniq', orders: 'orders' };
 const SUM_HK = { ...HK, sales: 'sales' };   // การ์ดรวมมี +฿ ยอดขายชั่วโมงนี้ด้วย (แถวรายคนไม่มี — คอลัมน์แคบ)
@@ -214,12 +219,12 @@ export function mountDashboard(root, me, { onLogout }) {
       this.updateCall();
     }
     updateCall() {
-      // ป้ายกำลังโทร: คอม = หลังรหัส · มือถือ = หลังชื่อ (CSS เลือกโชว์ตัวเดียว) · เกิน 60 นาที → แดง (ไม่ซ่อน)
+      // ป้ายกำลังโทร: คอม = หลังรหัส · มือถือ = หลังชื่อ (CSS เลือกโชว์ตัวเดียว) · 30 นาทีขึ้นไป → แดง + ยิ่งนานไอคอนยิ่งสั่นถี่ (ไม่ซ่อน)
       const c = isLive() ? S.calling.get(this.m.emp) : undefined, since = c?.since;
       const on = !!c, long = on && Date.now() - since >= CALL_LONG_MS;
-      const title = on ? `กำลังโทร${c.camp ? ' · ' + c.camp : ''} · เริ่ม ${hm(new Date(since).toISOString())}${long ? ' (เกิน 60 นาที)' : ''}` : '';
+      const title = on ? `กำลังโทร${c.camp ? ' · ' + c.camp : ''} · เริ่ม ${hm(new Date(since).toISOString())}${long ? ` (เกิน ${CALL_LONG_MS / 60000} นาที)` : ''}` : '';
       const heat = on ? callHeat(since).toFixed(3) : '0';
-      for (const b of this.calls) { b.hidden = !on; b.classList.toggle('long', long); b.style.setProperty('--heat', heat); b.classList.toggle('hot', heat >= .45); b.title = title; }
+      for (const b of this.calls) { b.hidden = !on; paintCallBadge(b, since, long, heat); b.title = title; }
       this.camp?.updateCall();
     }
   }
@@ -267,7 +272,7 @@ export function mountDashboard(root, me, { onLogout }) {
       const want = c ? (CAMPAIGNS.some((x) => x.name === c.camp) ? c.camp : NO_CAMP) : null;
       const long = !!c && Date.now() - c.since >= CALL_LONG_MS;
       const heat = c ? callHeat(c.since).toFixed(3) : '0';
-      for (const it of this.items) { it.call.hidden = it.name !== want; it.call.classList.toggle('long', long); it.call.style.setProperty('--heat', heat); it.call.classList.toggle('hot', heat >= .45); }
+      for (const it of this.items) { it.call.hidden = it.name !== want; paintCallBadge(it.call, c?.since, long, heat); }
     }
   }
 
@@ -534,9 +539,11 @@ export function mountDashboard(root, me, { onLogout }) {
   function hideChip() { chip.classList.remove('show'); }
 
   // จำนวนคนกำลังโทร → เส้นชีพจร + ตัวเลขเบา ๆ ข้าง "ลูกทีม n คน" (Live เท่านั้น · 0 คน = ซ่อน)
+  // + ความนาน → รูปคลื่น: ค่าเฉลี่ยสีป้ายของทุกคนที่กำลังโทร (0 ส้มทุกคน → 1 แดงทุกคน) · เรียกซ้ำทุก 30 วิ จาก clock
   function paintCalling() {   // function declaration (hoist) · หา element ทุกครั้ง กันเรียกก่อนบรรทัดนี้รัน
     const n = isLive() ? S.calling.size : 0, el = $('.listbar .oncall');
     ecg.setCalling(n);
+    ecg.setStrain(n ? [...S.calling.values()].reduce((a, c) => a + callHeat(c.since), 0) / n : 0);
     if (el) { el.hidden = !n; el.querySelector('b').textContent = int(n); el.title = `กำลังโทรอยู่ ${int(n)} คน`; }
   }
   const live = createLive({
@@ -625,6 +632,7 @@ export function mountDashboard(root, me, { onLogout }) {
       if (hh !== S.hour) { loadAll(); return; }
     }
     if (isLive() && !multi()) for (const row of S.rows.values()) row.updateTime();
+    if (isLive()) paintCalling();   // สีป้ายเปลี่ยนตามเวลา → รูปคลื่นตาม
   }, 30000);
 
   // ดึงลงเพื่อรีเฟรช (มือถือ)

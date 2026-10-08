@@ -1,7 +1,7 @@
 // ศูนย์แจ้งเตือน (วันนี้) · รายการมาจากฐานข้อมูล (sup_notifications) → ทุกเครื่องของบัญชีเห็นชุดเดียวกัน ไม่ซ้ำ
 // คอม = ปุ่มลอยมุมขวาล่าง → กล่องรายการ · มือถือ = แถบดึงที่ขอบขวา → แถบด้านข้างเลื่อนออกมา
 // จุดแดง = มีรายการใหม่กว่า seen_at ของบัญชี · เปิดดูจากเครื่องไหนก็ได้ → จุดหายทุกเครื่อง (เครื่องอื่นเช็คทุก 1 นาที/ตอนกลับมาที่แอป)
-import { esc, money } from './fmt.js?v=58';
+import { esc, money } from './fmt.js?v=59';
 
 const BELL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';
 const LEFT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>';

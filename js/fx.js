@@ -1,5 +1,5 @@
 // toast + ละอองทอง + เส้นชีพจร
-import { esc } from './fmt.js?v=58';
+import { esc } from './fmt.js?v=59';
 
 export function toast(html, { icon = '✨', err = false, ms = 3800 } = {}) {
   const box = document.getElementById('toasts');
@@ -40,6 +40,7 @@ export function burst(host, n = 16) {
 // เส้นใหม่เข้ม เก่าจางลงตามอายุ · ช่วงยักขึ้นลงหัวเขียนจะดูพุ่งเร็ว (ระยะทางเส้นยาวในเวลาเท่ากัน) เหมือนเครื่องจริง
 // สีเดียว · push(amp, kind): amp = px (บวก = ขึ้น · ลบ = ลง) · kind: 'beat' คลื่นหัวใจ | 'hump' นูนเตี้ย
 // setCalling(n): มีคนกำลังโทร → คลื่นหัวใจต่อเนื่อง สูงตามจำนวนคน (ตันที่ 7) · คนที่ 8 ขึ้นไป = เต้นถี่ขึ้นแทน (ดู callRate) · วางสายหมด = เส้นตรง
+// setStrain(0..1): โทรนาน (ค่าเฉลี่ยสีป้าย) → รูปคลื่นแบบหัวใจทำงานหนัก: แท่งบนเตี้ยลง แท่งล่างลึกขึ้น เส้นหลังแท่งยุบ (ดู strainShape)
 // แท็บซ่อน = หยุดวาด · โหมดย้อนหลัง/ลดการเคลื่อนไหว = เส้นตรงนิ่ง
 export function createEcg(host) {
   const cv = document.createElement('canvas');
@@ -48,15 +49,16 @@ export function createEcg(host) {
   const ctx = cv.getContext('2d');
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const ERASE = 18, FADE_BUCKETS = 8;
-  const ECG_PTS = [[0, 0], [.06, 0], [.12, .1], [.18, 0], [.3, 0], [.34, -.15], [.4, 1], [.46, -.42], [.5, 0], [.62, 0], [.72, .22], [.82, 0], [1, 0]];
-  const ecgAt = (t) => { for (let k = 1; k < ECG_PTS.length; k++) { const [x0, v0] = ECG_PTS[k - 1], [x1, v1] = ECG_PTS[k]; if (t <= x1) return v0 + (v1 - v0) * (t - x0) / (x1 - x0); } return 0; };
+  const ecgAt = (t) => { for (let k = 1; k < pts.length; k++) { const [x0, v0] = pts[k - 1], [x1, v1] = pts[k]; if (t <= x1) return v0 + (v1 - v0) * (t - x0) / (x1 - x0); } return 0; };
   let W = 0, H = 0, dpr = 1, y = [], q = [], raf = 0, last = 0, head = 0, active = true, col = '#0071e3', hum = 0, phase = 0;
   let bpmGoal = 75, bpm = 75, P = 0, B = 0;                                    // P = ความยาวรอบ · B = ช่วงที่เป็นคลื่น (ที่เหลือ = เส้นพัก) · ล็อกตอนขึ้นลูกใหม่
+  let strainGoal = 0, strain = 0, pts = strainShape(0);                       // รูปคลื่นล็อกตอนขึ้นลูกใหม่เหมือนกัน
   const speed = () => Math.max(36, W / 30);                                    // px/วินาที: คอม = ทั้งจอ 30 วิ · จอแคบ (มือถือ) ไม่ช้ากว่า 36 px/วิ (ไม่อืด · ทั้งจอ ≈ 11 วิ)
   const humPeriod = () => Math.max(26, Math.round(speed() * .8));              // 75 ครั้ง/นาที (ฐาน)
   // ขึ้นลูกใหม่: ความถี่ค่อย ๆ เร่ง/ผ่อนเข้าหาเป้า (≤4 ครั้ง/นาที ต่อลูก) + แกว่งตามธรรมชาติ ±3%
   function newBeat() {
     bpm += Math.max(-4, Math.min(4, bpmGoal - bpm));
+    strain += Math.max(-.08, Math.min(.08, strainGoal - strain)); pts = strainShape(strain);   // ค่อย ๆ เปลี่ยนรูปทีละลูก
     const P0 = humPeriod(), r = (75 / bpm) * (1 + (Math.random() - .5) * .06);
     P = Math.max(8, Math.round(P0 * r));
     B = Math.min(P, Math.round(P0 * beatSpan(r)));
@@ -77,7 +79,7 @@ export function createEcg(host) {
       const v = phase < B ? hum * ecgAt((phase / B) * BEAT_END) : 0;
       phase = (phase + 1) % P; return v;
     }
-    phase = 0; bpm = bpmGoal; return 0;
+    phase = 0; bpm = bpmGoal; strain = strainGoal; return 0;
   }
   function draw() {
     if (!W) return;
@@ -141,12 +143,19 @@ export function createEcg(host) {
     },
     setActive(v) { active = v; if (!v) { q = []; hum = 0; y.fill(0); head = 0; } draw(); kick(); },
     setCalling(n) { const on = active && !reduce && n > 0; hum = on ? Math.min(12, 4 + n * 1.2) : 0; bpmGoal = on ? callRate(n) : 75; },   // สูง: 1 คน ≈ 5px … 7 คน = สุด
+    setStrain(v) { strainGoal = Math.max(0, Math.min(1, Number(v) || 0)); },
   };
 }
 // ความถี่เส้นชีพจรตามจำนวนคนกำลังโทร: ≤7 คน = 75 ครั้ง/นาที · คนที่ 8 ขึ้นไป +6 ต่อคน · ตันที่ 120 (15 คนขึ้นไป) — เร็วกว่านี้คลื่นอัดจนอ่านไม่ออก
 export const callRate = (n) => Math.min(120, 75 + 6 * Math.max(0, n - 7));
 // ช่วงคลื่นในรอบ (เทียบรอบฐาน 75 ครั้ง/นาที) ตามหัวใจจริง: เต้นเร็ว → เส้นพักหลังคลื่น T หดก่อน · ตัวคลื่นหดตาม √ (สูตร Bazett)
 // ถ้าคลื่นยาวเกิน 92% ของรอบ → บีบให้พอดี (เหลือเส้นพักนิดนึงเสมอ) · r = รอบใหม่/รอบฐาน
+// รูปคลื่นตามความนาน s (0 ปกติ → 1 แดงทุกคน) แบบ strain pattern จริง: R (บน) 1 → .45 · S (ล่าง) .42 → 1 · ST ยุบ 0 → −.14 · T แบนลง .22 → .1
+// ค่า |v| ≤ 1 เสมอ → ไม่ล้นขอบแถบ (hum สุด 12px = ที่ว่างครึ่งแถบพอดี)
+export function strainShape(s) {
+  const R = 1 - .55 * s, Sd = -(.42 + .58 * s), st = -.14 * s, T = .22 - .12 * s;
+  return [[0, 0], [.06, 0], [.12, .1], [.18, 0], [.3, 0], [.34, -.15], [.4, R], [.46, Sd], [.5, st], [.62, st], [.72, T], [.82, 0], [1, 0]];
+}
 const BEAT_END = .82;   // ใน ECG_PTS: คลื่น P→T จบที่ .82 · ที่เหลือ = เส้นพัก
 export const beatSpan = (r) => Math.min(BEAT_END * Math.sqrt(r), .92 * r);
 // ⏰ เตือนโทรนาน: การ์ดพนักงานสั่น — ใช้ Web Animations (el.animate) ห้ามสลับ class ที่มี animation บน .emp
