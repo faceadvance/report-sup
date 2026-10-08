@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "51";
+  --build: "52";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -682,3 +682,6 @@ html.dark .calling.long { background: #ff453a; color: #fff; }
   30%, 50%, 70% { transform: translateX(-7px); } 40%, 60% { transform: translateX(7px); }
 }
 @media (prefers-reduced-motion: reduce) { .emp.alarm { animation: none; outline: 2px solid #f59e0b; } }
+
+/* โหมด "ทุกทีม" */
+.seg.team button .tdot.all { background: conic-gradient(#f59e0b 0 25%, #0071e3 0 50%, #af52de 0 75%, #34c759 0); }

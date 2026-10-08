@@ -1,15 +1,15 @@
 // หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
-import { rpc, session, AuthError } from '../api.js?v=51';
-import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=51';
-import { Odo } from '../odometer.js?v=51';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=51';
-import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=51';
-import { createLive } from '../live.js?v=51';
-import { pickRange } from '../calendar.js?v=51';
-import { toast, toastText, burst, createEcg } from '../fx.js?v=51';
-import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=51';
-import { themeToggle, ping } from '../theme.js?v=51';
-import { Snd, soundButton } from '../sound.js?v=51';
+import { rpc, session, AuthError } from '../api.js?v=52';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=52';
+import { Odo } from '../odometer.js?v=52';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=52';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=52';
+import { createLive } from '../live.js?v=52';
+import { pickRange } from '../calendar.js?v=52';
+import { toast, toastText, burst, createEcg } from '../fx.js?v=52';
+import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=52';
+import { themeToggle, ping } from '../theme.js?v=52';
+import { Snd, soundButton } from '../sound.js?v=52';
 
 const METRICS = [
   ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],
@@ -59,8 +59,10 @@ export function mountDashboard(root, me, { onLogout }) {
   };
   const callAlerted = new Map();   // emp → รอบ 10 นาทีที่เตือนไปแล้ว
   const markCallSeen = (emp, since) => { if (!callAlerted.has(emp)) callAlerted.set(emp, Math.floor((Date.now() - since) / 600000)); };
+  // โหมด "ทุกทีม" (team = 0): บัญชีที่ดูได้ ≥ 2 ทีม → รวมทุกคนจากทุกทีมที่มีสิทธิ์ในหน้าเดียว
+  const ALL = 0, canAll = me.teams.length >= 2;
   const savedTeam = Number(localStorage.getItem('sl_team'));
-  if (me.teams.some((t) => t.id === savedTeam)) S.team = savedTeam;
+  if (me.teams.some((t) => t.id === savedTeam) || (canAll && savedTeam === ALL && localStorage.getItem('sl_team') !== null)) S.team = savedTeam;
   const minDay = () => S.me.start_date || addDays(S.today, -60);
   const isLive = () => S.to === S.today;
   isLiveRef = isLive;
@@ -84,7 +86,7 @@ export function mountDashboard(root, me, { onLogout }) {
       <span class="range-label"></span>
     </section>
     <section class="controls">
-      <div class="seg team" role="group" aria-label="เลือกทีม"><span class="ind"></span>${me.teams.map((t) => `<button data-team="${t.id}" style="--c:${esc(t.color || '#0071e3')}"><span class="tdot"></span>${esc(t.name)}</button>`).join('')}</div>
+      <div class="seg team" role="group" aria-label="เลือกทีม"><span class="ind"></span>${canAll ? '<button data-team="0"><span class="tdot all"></span>ทุกทีม</button>' : ''}${me.teams.map((t) => `<button data-team="${t.id}" style="--c:${esc(t.color || '#0071e3')}"><span class="tdot"></span>${esc(t.name)}</button>`).join('')}</div>
       <div class="seg date" role="group" aria-label="เลือกวัน"><span class="ind"></span>
         <button data-mode="today">วันนี้</button><button data-mode="yesterday">เมื่อวาน</button><button data-mode="range">${CAL} <span>เลือกช่วง</span></button></div>
     </section>
@@ -121,11 +123,13 @@ export function mountDashboard(root, me, { onLogout }) {
   }
   const syncSegs = () => {
     segSet($('.seg.team'), $(`.seg.team [data-team="${S.team}"]`));
+    const tb = $(`.seg.team [data-team="${S.team}"]`), ts = $('.seg.team');   // มือถือ: ปุ่มทีมเลื่อนได้ → เลื่อนปุ่มที่เลือกให้อยู่ในจอ
+    if (tb && ts.scrollWidth > ts.clientWidth) ts.scrollTo({ left: Math.max(0, tb.offsetLeft - (ts.clientWidth - tb.offsetWidth) / 2), behavior: 'smooth' });
     segSet($('.seg.date'), $(`.seg.date [data-mode="${S.mode}"]`));
     root.querySelectorAll('.sorter button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.sort === S.sort)));
     const n = diffDays(S.from, S.to) + 1;
     const team = S.me.teams.find((t) => t.id === S.team);
-    $('.team-title').textContent = team ? team.name : 'ยังไม่มีทีม';
+    $('.team-title').textContent = S.team === ALL ? 'ทุกทีม' : team ? team.name : 'ยังไม่มีทีม';
     $('.range-label').innerHTML = multi()
       ? `<b>${thDate(S.from)} – ${thDate(S.to, true)}</b> · ${n} วัน`
       : `<b>${thDow(S.from)} ${thDate(S.from, true)}</b>${isLive() ? ' · Live' : ' · ย้อนหลัง'}`;
@@ -546,7 +550,7 @@ export function mountDashboard(root, me, { onLogout }) {
   function setLive() {
     pulse.classList.toggle('history', !isLive());
     ecg.setActive(isLive()); ecg.setCalling(isLive() ? S.calling.size : 0);
-    if (isLive() && S.team !== null) live.watch(S.team); else live.stop();
+    if (isLive() && S.team !== null) live.watch(S.team === ALL ? me.teams.map((t) => t.id) : [S.team]); else live.stop();
   }
 
   // ════════ เหตุการณ์ ════════
