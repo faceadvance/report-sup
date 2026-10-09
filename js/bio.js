@@ -1,6 +1,6 @@
 // สแกนหน้า/นิ้ว = passkey ของเครื่อง + PRF เป็นกุญแจล็อก {username,password} (แบบ face-advance-reports)
 // ไม่มี PRF → ไม่เปิดให้ใช้ (ไม่มีวิธีสำรองที่ไม่ปลอดภัย)
-import { FINGER, FACE } from './icons.js?v=60';
+import { FINGER, FACE } from './icons.js?v=61';
 
 const PK = 'sl_bio', NO = 'sl_bio_no';
 const te = new TextEncoder(), td = new TextDecoder();

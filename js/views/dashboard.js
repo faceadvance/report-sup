@@ -1,16 +1,16 @@
 // หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
-import { rpc, session, AuthError } from '../api.js?v=60';
-import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=60';
-import { Odo } from '../odometer.js?v=60';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=60';
-import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=60';
-import { createLive } from '../live.js?v=60';
-import { createNotifyCenter, noteHtml, noteIcon } from '../notify.js?v=60';
-import { pickRange } from '../calendar.js?v=60';
-import { toast, toastText, burst, createEcg, alarmShake } from '../fx.js?v=60';
-import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=60';
-import { themeToggle, ping } from '../theme.js?v=60';
-import { Snd, soundButton } from '../sound.js?v=60';
+import { rpc, session, AuthError } from '../api.js?v=61';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=61';
+import { Odo } from '../odometer.js?v=61';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=61';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=61';
+import { createLive } from '../live.js?v=61';
+import { createNotifyCenter, noteHtml, noteIcon } from '../notify.js?v=61';
+import { pickRange } from '../calendar.js?v=61';
+import { toast, toastText, burst, createEcg, alarmShake } from '../fx.js?v=61';
+import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=61';
+import { themeToggle, ping } from '../theme.js?v=61';
+import { Snd, soundButton } from '../sound.js?v=61';
 
 const METRICS = [
   ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],
@@ -33,7 +33,12 @@ const callHeat = (since) => Math.sqrt(Math.max(0, Math.min(1, (Date.now() - sinc
 // ไอคอนสั่น: <30 นาที = 1 วิ/รอบ (เดิม) · 30 นาทีขึ้นไป ยิ่งนานยิ่งถี่ ทุก 10 นาที เร็วขึ้น 0.1 วิ · ตันที่ 0.5 วิ (80 นาทีขึ้นไป = ถี่ 2 เท่า)
 // เปลี่ยนเป็นขั้น (ไม่ต่อเนื่อง) — เปลี่ยน duration ของแอนิเมชันที่กำลังเล่น = จังหวะกระตุก 1 ครั้ง · ขั้นละ 10 นาทีจึงแทบไม่เห็น
 const callShake = (since) => { const m = (Date.now() - since) / 60000; return m < 30 ? '1s' : `${Math.max(.5, 1 - .1 * Math.floor((m - 30) / 10)).toFixed(1)}s`; };
-const paintCallBadge = (b, since, long, heat) => { b.classList.toggle('long', long); b.style.setProperty('--heat', heat); b.classList.toggle('hot', heat >= .45); b.style.setProperty('--shake', since ? callShake(since) : '1s'); };
+const paintCallBadge = (b, since, long, heat, camp) => {
+  b.classList.toggle('long', long); b.style.setProperty('--heat', heat); b.classList.toggle('hot', heat >= .45); b.style.setProperty('--shake', since ? callShake(since) : '1s');
+  b.dataset.since = since || ''; b.dataset.camp = camp || '';   // กล่องข้อมูลตอนชี้ (calltip) อ่านจากตรงนี้
+};
+// เวลาที่โทรไปแล้ว (คำนวณตอนชี้ · ไม่นับต่อเนื่อง)
+const callAgo = (ms) => { const m = Math.floor(ms / 60000); return m < 1 ? 'ไม่ถึง 1 นาที' : m < 60 ? `${m} นาที` : `${Math.floor(m / 60)} ชม. ${m % 60} นาที`; };
 const NO_CAMP = 'ระบุแคมเปญไม่ได้';
 const HK = { calls: 'calls', ans: 'answered', uniq: 'uniq', orders: 'orders' };
 const SUM_HK = { ...HK, sales: 'sales' };   // การ์ดรวมมี +฿ ยอดขายชั่วโมงนี้ด้วย (แถวรายคนไม่มี — คอลัมน์แคบ)
@@ -224,7 +229,7 @@ export function mountDashboard(root, me, { onLogout }) {
       const on = !!c, long = on && Date.now() - since >= CALL_LONG_MS;
       const title = on ? `กำลังโทร${c.camp ? ' · ' + c.camp : ''} · เริ่ม ${hm(new Date(since).toISOString())}${long ? ` (เกิน ${CALL_LONG_MS / 60000} นาที)` : ''}` : '';
       const heat = on ? callHeat(since).toFixed(3) : '0';
-      for (const b of this.calls) { b.hidden = !on; paintCallBadge(b, since, long, heat); b.title = title; }
+      for (const b of this.calls) { b.hidden = !on; paintCallBadge(b, since, long, heat, c?.camp); b.setAttribute('aria-label', title); }   // ไม่ใช้ title (กล่องเบราว์เซอร์) → calltip
       this.camp?.updateCall();
     }
   }
@@ -272,7 +277,7 @@ export function mountDashboard(root, me, { onLogout }) {
       const want = c ? (CAMPAIGNS.some((x) => x.name === c.camp) ? c.camp : NO_CAMP) : null;
       const long = !!c && Date.now() - c.since >= CALL_LONG_MS;
       const heat = c ? callHeat(c.since).toFixed(3) : '0';
-      for (const it of this.items) { it.call.hidden = it.name !== want; paintCallBadge(it.call, c?.since, long, heat); }
+      for (const it of this.items) { it.call.hidden = it.name !== want; paintCallBadge(it.call, c?.since, long, heat, want); }
     }
   }
 
@@ -662,5 +667,34 @@ export function mountDashboard(root, me, { onLogout }) {
   requestAnimationFrame(syncSegs);
   document.fonts?.ready.then(syncSegs);
   loadAll();
-  return { destroy() { clearInterval(clock); live.stop(); ro.disconnect(); nc.destroy(); } };
+  // ════════ กล่องข้อมูลตอนเอาเมาส์ชี้ป้ายกำลังโทร (คอม) · นาทีคำนวณตอนชี้ ไม่นับต่อเนื่อง ════════
+  const tip = document.createElement('div');
+  tip.className = 'calltip'; tip.setAttribute('role', 'tooltip'); tip.hidden = true; root.append(tip);
+  let tipFor = null;
+  function showTip(b) {
+    const since = Number(b.dataset.since); if (!since) return;
+    const ms = Math.max(0, Date.now() - since), long = ms >= CALL_LONG_MS;
+    tip.style.setProperty('--heat', callHeat(since).toFixed(3)); tip.classList.toggle('long', long);
+    tip.innerHTML = `<div class="ct-top">${PHONE}<span>กำลังโทร</span><b>${callAgo(ms)}</b></div>`
+      + `<div class="ct-row"><span>แคมเปญ</span><span>${esc(b.dataset.camp || NO_CAMP)}</span></div>`
+      + `<div class="ct-row"><span>เริ่มโทร</span><span>${hm(new Date(since).toISOString())} น.</span></div>`
+      + (long ? `<div class="ct-warn">เกิน ${CALL_LONG_MS / 60000} นาที</div>` : '');
+    tip.hidden = false; tipFor = b;
+    const r = b.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight, gap = 9;
+    const topLim = ($('.top')?.getBoundingClientRect().bottom || 0) + 6;   // แถบหัว (sticky) บังได้ → นับขอบล่างของแถบหัวเป็นขอบบน
+    const below = r.top - h - gap < topLim;   // ชิดขอบบน → ลงข้างล่างแทน
+    const left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2));
+    tip.classList.toggle('below', below);
+    tip.style.left = `${left}px`; tip.style.top = `${below ? r.bottom + gap : r.top - h - gap}px`;
+    tip.style.setProperty('--ax', `${Math.max(12, Math.min(w - 12, r.left + r.width / 2 - left))}px`);   // ลูกศรชี้กลางป้าย
+  }
+  const hideTip = () => { tip.hidden = true; tipFor = null; };
+  root.addEventListener('pointerover', (e) => {
+    if (e.pointerType !== 'mouse') return;   // มือถือ/แท็บเล็ต ไม่มีชี้ → ไม่โชว์ (แตะ = เปิดการ์ดเหมือนเดิม)
+    const b = e.target.closest?.('.calling'); if (b && b !== tipFor && !b.hidden) showTip(b);
+  });
+  root.addEventListener('pointerout', (e) => { if (tipFor && !tipFor.contains(e.relatedTarget)) hideTip(); });
+  addEventListener('scroll', hideTip, { passive: true, capture: true });
+
+  return { destroy() { clearInterval(clock); live.stop(); ro.disconnect(); nc.destroy(); tip.remove(); removeEventListener('scroll', hideTip, { capture: true }); } };
 }
