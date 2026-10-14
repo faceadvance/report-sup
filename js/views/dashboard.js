@@ -1,16 +1,16 @@
 // หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
-import { rpc, session, AuthError } from '../api.js?v=61';
-import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=61';
-import { Odo } from '../odometer.js?v=61';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=61';
-import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=61';
-import { createLive } from '../live.js?v=61';
-import { createNotifyCenter, noteHtml, noteIcon } from '../notify.js?v=61';
-import { pickRange } from '../calendar.js?v=61';
-import { toast, toastText, burst, createEcg, alarmShake } from '../fx.js?v=61';
-import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=61';
-import { themeToggle, ping } from '../theme.js?v=61';
-import { Snd, soundButton } from '../sound.js?v=61';
+import { rpc, session, AuthError } from '../api.js?v=62';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=62';
+import { Odo } from '../odometer.js?v=62';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=62';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=62';
+import { createLive } from '../live.js?v=62';
+import { createNotifyCenter, noteHtml, noteIcon } from '../notify.js?v=62';
+import { pickRange } from '../calendar.js?v=62';
+import { toast, toastText, burst, createEcg, alarmShake } from '../fx.js?v=62';
+import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=62';
+import { themeToggle, ping } from '../theme.js?v=62';
+import { Snd, soundButton } from '../sound.js?v=62';
 
 const METRICS = [
   ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],
@@ -40,6 +40,7 @@ const paintCallBadge = (b, since, long, heat, camp) => {
 // เวลาที่โทรไปแล้ว (คำนวณตอนชี้ · ไม่นับต่อเนื่อง)
 const callAgo = (ms) => { const m = Math.floor(ms / 60000); return m < 1 ? 'ไม่ถึง 1 นาที' : m < 60 ? `${m} นาที` : `${Math.floor(m / 60)} ชม. ${m % 60} นาที`; };
 const NO_CAMP = 'ระบุแคมเปญไม่ได้';
+const CLOSE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 const HK = { calls: 'calls', ans: 'answered', uniq: 'uniq', orders: 'orders' };
 const SUM_HK = { ...HK, sales: 'sales' };   // การ์ดรวมมี +฿ ยอดขายชั่วโมงนี้ด้วย (แถวรายคนไม่มี — คอลัมน์แคบ)
 // +n = ชั่วโมงนี้เพิ่มขึ้นเท่าไหร่ (ตั้งแต่ HH:00 · Live เท่านั้น)
@@ -644,7 +645,7 @@ export function mountDashboard(root, me, { onLogout }) {
   // ดึงลงเพื่อรีเฟรช (มือถือ)
   const ptr = root.querySelector('.ptr');
   let py = null, pd = 0;
-  addEventListener('touchstart', (e) => { if (scrollY <= 0 && !document.querySelector('.sheet')) { py = e.touches[0].clientY; pd = 0; } }, { passive: true });
+  addEventListener('touchstart', (e) => { if (scrollY <= 0 && !document.querySelector('.sheet, .callmodal')) { py = e.touches[0].clientY; pd = 0; } }, { passive: true });
   addEventListener('touchmove', (e) => {
     if (py === null) return;
     pd = Math.max(0, Math.min(120, e.touches[0].clientY - py));
@@ -671,14 +672,18 @@ export function mountDashboard(root, me, { onLogout }) {
   const tip = document.createElement('div');
   tip.className = 'calltip'; tip.setAttribute('role', 'tooltip'); tip.hidden = true; root.append(tip);
   let tipFor = null;
-  function showTip(b) {
-    const since = Number(b.dataset.since); if (!since) return;
+  // เนื้อหากล่อง (ใช้ร่วมกัน: calltip คอม + modal มือถือ) · ใส่สี --heat / .long ให้กล่อง el
+  function fillCallInfo(el, b, since) {
     const ms = Math.max(0, Date.now() - since), long = ms >= CALL_LONG_MS;
-    tip.style.setProperty('--heat', callHeat(since).toFixed(3)); tip.classList.toggle('long', long);
-    tip.innerHTML = `<div class="ct-top">${PHONE}<span>กำลังโทร</span><b>${callAgo(ms)}</b></div>`
+    el.style.setProperty('--heat', callHeat(since).toFixed(3)); el.classList.toggle('long', long);
+    return `<div class="ct-top">${PHONE}<span>กำลังโทร</span><b>${callAgo(ms)}</b></div>`
       + `<div class="ct-row"><span>แคมเปญ</span><span>${esc(b.dataset.camp || NO_CAMP)}</span></div>`
       + `<div class="ct-row"><span>เริ่มโทร</span><span>${hm(new Date(since).toISOString())} น.</span></div>`
       + (long ? `<div class="ct-warn">เกิน ${CALL_LONG_MS / 60000} นาที</div>` : '');
+  }
+  function showTip(b) {
+    const since = Number(b.dataset.since); if (!since) return;
+    tip.innerHTML = fillCallInfo(tip, b, since);
     tip.hidden = false; tipFor = b;
     const r = b.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight, gap = 9;
     const topLim = ($('.top')?.getBoundingClientRect().bottom || 0) + 6;   // แถบหัว (sticky) บังได้ → นับขอบล่างของแถบหัวเป็นขอบบน
@@ -690,11 +695,64 @@ export function mountDashboard(root, me, { onLogout }) {
   }
   const hideTip = () => { tip.hidden = true; tipFor = null; };
   root.addEventListener('pointerover', (e) => {
-    if (e.pointerType !== 'mouse') return;   // มือถือ/แท็บเล็ต ไม่มีชี้ → ไม่โชว์ (แตะ = เปิดการ์ดเหมือนเดิม)
+    if (e.pointerType !== 'mouse') return;   // มือถือ/แท็บเล็ต ไม่มีชี้ → ใช้ modal ตอนแตะแทน (ด้านล่าง)
     const b = e.target.closest?.('.calling'); if (b && b !== tipFor && !b.hidden) showTip(b);
   });
   root.addEventListener('pointerout', (e) => { if (tipFor && !tipFor.contains(e.relatedTarget)) hideTip(); });
   addEventListener('scroll', hideTip, { passive: true, capture: true });
 
-  return { destroy() { clearInterval(clock); live.stop(); ro.disconnect(); nc.destroy(); tip.remove(); removeEventListener('scroll', hideTip, { capture: true }); } };
+  // ════════ มือถือ/แท็บเล็ต: แตะป้ายกำลังโทร → modal กลางจอ (ข้อมูลเดียวกับ calltip) · ไม่เปิดการ์ด ════════
+  // ปิดได้ 4 ทาง: แตะพื้นหลัง · ปุ่ม × · ปุ่ม "ปิด" · Esc · เปิดอยู่ = ล็อกหน้าหลัง (body fixed — iOS ไม่เลื่อนตามนิ้ว) + ปิดดึงลงรีเฟรช
+  let cm = null, lockY = 0, lastPt = 'mouse';
+  const stopTouch = (e) => { if (e.cancelable) e.preventDefault(); };
+  function lockScroll() {
+    lockY = scrollY;
+    Object.assign(document.body.style, { position: 'fixed', top: `-${lockY}px`, left: '0', right: '0', width: '100%' });
+    document.documentElement.classList.add('cm-open');
+  }
+  function unlockScroll() {
+    Object.assign(document.body.style, { position: '', top: '', left: '', right: '', width: '' });
+    document.documentElement.classList.remove('cm-open');
+    scrollTo({ top: lockY, behavior: 'instant' });
+  }
+  function closeCallModal() {
+    if (!cm) return;
+    const { ov, box } = cm; cm = null;
+    document.removeEventListener('keydown', onCmKey);
+    ov.classList.add('out'); box.classList.add('out');
+    setTimeout(() => { ov.remove(); box.remove(); }, 220);
+    unlockScroll();
+  }
+  const onCmKey = (e) => { if (e.key === 'Escape') closeCallModal(); };
+  function openCallModal(b) {
+    const since = Number(b.dataset.since); if (!since) return;
+    closeCallModal(); hideTip();
+    const emp = b.closest('.emp'), nm = emp?.querySelector('.nm')?.textContent || '', code = emp?.querySelector('.code')?.textContent || '';
+    const ov = document.createElement('div'); ov.className = 'cm-ov';
+    const box = document.createElement('div'); box.className = 'callmodal'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true');
+    box.setAttribute('aria-label', `กำลังโทร ${nm}`.trim());
+    box.innerHTML = `<button class="cm-x" type="button" aria-label="ปิด">${CLOSE}</button>`
+      + (nm || code ? `<div class="cm-who"><b>${esc(nm)}</b>${code && code !== nm ? `<span>${esc(code)}</span>` : ''}</div>` : '')
+      + fillCallInfo(box, b, since)
+      + `<button class="cm-ok" type="button">ปิด</button>`;
+    for (const el of [ov, box]) el.addEventListener('touchmove', stopTouch, { passive: false });   // กันลากแล้วหน้าหลังเลื่อน/เด้ง
+    ov.addEventListener('click', closeCallModal);
+    box.querySelector('.cm-x').addEventListener('click', closeCallModal);
+    box.querySelector('.cm-ok').addEventListener('click', closeCallModal);
+    document.addEventListener('keydown', onCmKey);
+    lockScroll();
+    document.body.append(ov, box);
+    cm = { ov, box };
+    Snd.tap();
+    box.querySelector('.cm-ok').focus({ preventScroll: true });
+  }
+  root.addEventListener('pointerdown', (e) => { lastPt = e.pointerType || 'mouse'; }, true);
+  root.addEventListener('click', (e) => {
+    if (lastPt === 'mouse') return;   // เมาส์ = calltip ตอนชี้ (แตะ/คลิกป้าย = เปิดการ์ดเหมือนเดิม)
+    const b = e.target.closest?.('.calling'); if (!b || b.hidden || !Number(b.dataset.since)) return;
+    e.preventDefault(); e.stopPropagation();   // ไม่ส่งต่อให้ปุ่มหัวการ์ด (ไม่เปิด/ปิดการ์ด)
+    openCallModal(b);
+  }, true);
+
+  return { destroy() { clearInterval(clock); live.stop(); ro.disconnect(); nc.destroy(); tip.remove(); closeCallModal(); removeEventListener('scroll', hideTip, { capture: true }); } };
 }

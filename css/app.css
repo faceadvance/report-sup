@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "61";
+  --build: "62";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -638,11 +638,11 @@ html.dark .calling.long { background: #ff453a; color: #fff; }
 /* กล่องข้อมูลตอนชี้ป้ายกำลังโทร (คอม): นาทีที่โทรไปแล้วตัวใหญ่ สีตามป้าย (--heat) · แคมเปญ · เวลาเริ่ม · เกิน 30 นาที = แถบเตือน */
 .calltip { --ct-col: #f59e0b; position: fixed; z-index: 90; min-width: 12.5rem; max-width: 17rem; padding: .65rem .8rem .6rem; border-radius: 14px; background: var(--card-solid); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow-hi); font-size: .78rem; line-height: 1.5; pointer-events: none; animation: ctIn .16s var(--ease) both; }
 .calltip[hidden] { display: none; }
-.calltip.long { --ct-col: #ef4444; }
-html.dark .calltip { --ct-col: #ff9f0a; } html.dark .calltip.long { --ct-col: #ff453a; }
+.calltip.long, .callmodal.long { --ct-col: #ef4444; }
+html.dark .calltip, html.dark .callmodal { --ct-col: #ff9f0a; } html.dark .calltip.long, html.dark .callmodal.long { --ct-col: #ff453a; }
 @supports (background: color-mix(in srgb, red 50%, blue)) {
-  .calltip { --ct-col: color-mix(in srgb, #ef4444 calc(var(--heat, 0) * 100%), #f59e0b); }
-  html.dark .calltip { --ct-col: color-mix(in srgb, #ff453a calc(var(--heat, 0) * 100%), #ff9f0a); }
+  .calltip, .callmodal { --ct-col: color-mix(in srgb, #ef4444 calc(var(--heat, 0) * 100%), #f59e0b); }
+  html.dark .calltip, html.dark .callmodal { --ct-col: color-mix(in srgb, #ff453a calc(var(--heat, 0) * 100%), #ff9f0a); }
 }
 .calltip::after { content: ""; position: absolute; left: var(--ax, 50%); bottom: -6px; width: 10px; height: 10px; background: var(--card-solid); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); transform: translateX(-50%) rotate(45deg); }
 .calltip.below::after { bottom: auto; top: -6px; transform: translateX(-50%) rotate(225deg); }
@@ -653,6 +653,23 @@ html.dark .calltip { --ct-col: #ff9f0a; } html.dark .calltip.long { --ct-col: #f
 .ct-row span:last-child { color: var(--ink); font-weight: 500; text-align: right; }
 .ct-warn { margin-top: .45rem; padding: .1rem .5rem; width: fit-content; border-radius: 999px; font-size: .7rem; font-weight: 600; color: #fff; background: var(--ct-col); }
 @keyframes ctIn { from { opacity: 0; translate: 0 3px; } to { opacity: 1; translate: 0 0; } }
+/* มือถือ/แท็บเล็ต: แตะป้ายกำลังโทร → modal กลางจอ (เนื้อหาเดียวกับ calltip · ตัวใหญ่ขึ้น) · พื้นหลัง/กล่อง touch-action none = ลากแล้วหน้าหลังไม่เลื่อน */
+.cm-ov { position: fixed; inset: 0; z-index: 104; background: #0000004d; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); touch-action: none; overscroll-behavior: contain; animation: fadeIn .2s both; }
+.cm-ov.out, .callmodal.out { pointer-events: none; } .cm-ov.out { animation: fadeOut .2s both; }
+.callmodal { --ct-col: #f59e0b; position: fixed; z-index: 105; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(20rem, calc(100vw - 2.5rem)); padding: 1.05rem 1.2rem 1rem; border-radius: 22px; background: var(--card-solid); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow-hi); font-size: .95rem; line-height: 1.55; touch-action: none; overscroll-behavior: contain; animation: cmIn .3s var(--spring) both; }
+.callmodal.out { animation: cmOut .18s ease-in both; }
+.cm-x { position: absolute; top: .6rem; right: .6rem; width: 2.5rem; height: 2.5rem; border-radius: 50%; border: 0; background: var(--well); color: var(--sub); display: grid; place-items: center; cursor: pointer; }
+.cm-x svg { width: 1rem; height: 1rem; }
+.cm-who { display: flex; flex-direction: column; padding-right: 2.9rem; margin-bottom: .55rem; min-height: 2.5rem; justify-content: center; }
+.cm-who b { font-size: 1.05rem; line-height: 1.3; overflow-wrap: anywhere; }
+.cm-who span { font-size: .8rem; color: var(--sub); }
+.callmodal .ct-top b { font-size: 1.6rem; }
+.callmodal .ct-top svg { width: 1.15rem; height: 1.15rem; }
+.callmodal .ct-row { padding: .12rem 0; }
+.callmodal .ct-warn { font-size: .8rem; padding: .15rem .6rem; }
+.cm-ok { display: block; width: 100%; min-height: 2.9rem; margin-top: 1rem; border: 0; border-radius: 14px; background: var(--well); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+@keyframes cmIn { from { opacity: 0; transform: translate(-50%, -46%) scale(.94); } }
+@keyframes cmOut { to { opacity: 0; transform: translate(-50%, -48%) scale(.97); } }
 .who-txt b .calling { display: none; }   /* คอม: โชว์ตัวหลังรหัส */
 @media (max-width: 1039px) {
   .who-txt b .calling:not([hidden]) { display: inline-flex; }   /* มือถือ/แท็บเล็ต: หลังชื่อ */
