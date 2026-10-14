@@ -1,7 +1,7 @@
 // ศูนย์แจ้งเตือน (วันนี้) · รายการมาจากฐานข้อมูล (sup_notifications) → ทุกเครื่องของบัญชีเห็นชุดเดียวกัน ไม่ซ้ำ
 // คอม = ปุ่มลอยมุมขวาล่าง → กล่องรายการ · มือถือ = แถบดึงที่ขอบขวา → แถบด้านข้างเลื่อนออกมา
 // จุดแดง = มีรายการใหม่กว่า seen_at ของบัญชี · เปิดดูจากเครื่องไหนก็ได้ → จุดหายทุกเครื่อง (เครื่องอื่นเช็คทุก 1 นาที/ตอนกลับมาที่แอป)
-import { esc, money } from './fmt.js?v=62';
+import { esc, money } from './fmt.js?v=63';
 
 const BELL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';
 const LEFT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>';
@@ -18,6 +18,7 @@ export function noteHtml(n) {
 export const noteIcon = (n) => ICON[n.kind] || '🔔';
 
 const ts = (t) => Date.parse(t) || 0;
+const bkkDay = (t) => new Date(ts(t) + 7 * 3600e3).toISOString().slice(0, 10);   // วันที่ไทย (ตัดรอบเที่ยงคืน)
 const hm = (t) => new Date(t).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Bangkok' });
 function ago(t) {
   const m = Math.floor((Date.now() - t) / 60000);
@@ -41,13 +42,15 @@ export function createNotifyCenter({ fetchNotes, markSeen, onPick } = {}) {
   document.body.append(fab, tab, ov, panel);
   const list = panel.querySelector('.nc-list'), cnt = panel.querySelector('.nc-cnt');
 
+  // รายการ (สูงสุด 200) สร้างใหม่เฉพาะตอนกล่องเปิด · ปิดอยู่ = อัปเดตแค่จุดแดง (มือถือไม่ต้องสร้าง 200 แถวทุกครั้งที่มีออเดอร์)
   function render() {
+    const unread = !open && items.some((n) => ts(n.t) > seen);
+    fab.classList.toggle('unread', unread); tab.classList.toggle('unread', unread);
+    if (!open) return;
     cnt.textContent = items.length ? `${items.length} รายการ` : '';
     list.innerHTML = items.length
       ? items.map((n) => `<li class="nc-item${ts(n.t) > seen ? ' new' : ''}" data-emp="${esc(n.emp || '')}"><span class="nc-i">${noteIcon(n)}</span><div class="nc-tx"><p>${noteHtml(n)}</p><time>${hm(n.t)} · ${ago(ts(n.t))}</time></div></li>`).join('')
       : '<li class="nc-empty">ยังไม่มีแจ้งเตือนวันนี้<br><small>ปิดออเดอร์ · โทรนาน จะมาอยู่ที่นี่</small></li>';
-    const unread = !open && items.some((n) => ts(n.t) > seen);
-    fab.classList.toggle('unread', unread); tab.classList.toggle('unread', unread);
   }
   async function refresh() {
     if (!alive || document.hidden || !fetchNotes) return;
@@ -67,7 +70,7 @@ export function createNotifyCenter({ fetchNotes, markSeen, onPick } = {}) {
       const local = Date.now();
       try { const t = await markSeen?.(); seen = Math.max(seen, ts(t) || local); } catch { seen = Math.max(seen, local); }
       fab.classList.remove('unread'); tab.classList.remove('unread');
-    } else render();   // ปิดแล้ว → รายการใหม่เลิกไฮไลต์
+    } else render();   // ปิดแล้ว → อัปเดตจุดแดง (รายการสร้างใหม่ตอนเปิดครั้งหน้า · รายการใหม่เลิกไฮไลต์ตอนนั้น)
   }
   fab.addEventListener('click', () => setOpen(!open));
   tab.addEventListener('click', () => setOpen(true));
@@ -95,6 +98,7 @@ export function createNotifyCenter({ fetchNotes, markSeen, onPick } = {}) {
     // สัญญาณ realtime 'note' (ทีมที่กำลังดู) → เพิ่มทันที · id ซ้ำ = ข้าม
     push(n) {
       if (!n || items.some((x) => x.id === n.id)) return false;
+      if (items.length && bkkDay(n.t) !== bkkDay(items[0].t)) items = [];   // ข้ามเที่ยงคืน → ล้างของเมื่อวานทันที (ไม่ต้องรอรอบดึง 1 นาที)
       items.unshift(n); if (items.length > 200) items.length = 200;
       if (open) { seen = Math.max(seen, ts(n.t)); markSeen?.().catch?.(() => {}); }
       render(); return true;

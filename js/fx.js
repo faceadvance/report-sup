@@ -1,5 +1,5 @@
 // toast + ละอองทอง + เส้นชีพจร
-import { esc } from './fmt.js?v=62';
+import { esc } from './fmt.js?v=63';
 
 export function toast(html, { icon = '✨', err = false, ms = 3800 } = {}) {
   const box = document.getElementById('toasts');
@@ -29,9 +29,10 @@ export function burst(host, n = 16) {
     s.style.animationDelay = Math.random() * 80 + 'ms';
     b.appendChild(s);
   }
+  host.classList.add('fx-on');   // การ์ดใช้ content-visibility (ตัดของล้นขอบ) → ปิดชั่วคราวให้ละอองพุ่งออกนอกการ์ดได้
   host.appendChild(b);
   host.classList.remove('flash'); void host.offsetWidth; host.classList.add('flash');
-  setTimeout(() => b.remove(), 1200);
+  setTimeout(() => { b.remove(); if (!host.querySelector('.burst')) host.classList.remove('fx-on'); }, 1200);   // ยิงซ้อน = รอชุดสุดท้ายจบ
   if (navigator.vibrate) try { navigator.vibrate(30); } catch { /* บางเครื่องไม่ให้ */ }
 }
 

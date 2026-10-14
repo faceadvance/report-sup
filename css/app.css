@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "62";
+  --build: "63";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -194,7 +194,7 @@ html.dark .key { box-shadow: none; }
 .pulse::before { left: 0; background: linear-gradient(90deg, var(--bg), transparent); }
 .pulse::after { right: 0; background: linear-gradient(-90deg, var(--bg), transparent); }
 
-.hero { padding: 1.9rem 0 .6rem; animation: rise .7s var(--ease) both; }
+.hero { padding: 1.9rem 0 .6rem; animation: rise .7s var(--ease) backwards; }
 .live-pill { font-size: .82rem; font-weight: 600; letter-spacing: .02em; display: inline-flex; align-items: center; gap: 6px; color: var(--eyebrow); }
 .live-pill i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: live 1.6s ease-in-out infinite; }
 .live-pill[data-s="reconnecting"] { color: var(--warn); }
@@ -216,7 +216,7 @@ html.dark .seg .ind { background: #636366; box-shadow: none; }
 .seg.team button .tdot { width: .5rem; height: .5rem; border-radius: 50%; background: var(--c, var(--accent)); }
 
 .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: .65rem; margin-bottom: 1.6rem; }
-.kpi { position: relative; padding: 1rem 1rem .9rem; border-radius: var(--r-lg); background: var(--card); backdrop-filter: blur(20px) saturate(1.6); -webkit-backdrop-filter: blur(20px) saturate(1.6); border: 1px solid var(--line); box-shadow: var(--shadow); animation: rise .6s var(--ease) both; min-width: 0; }
+.kpi { position: relative; padding: 1rem 1rem .9rem; border-radius: var(--r-lg); background: var(--card); backdrop-filter: blur(20px) saturate(1.6); -webkit-backdrop-filter: blur(20px) saturate(1.6); border: 1px solid var(--line); box-shadow: var(--shadow); animation: rise .6s var(--ease) backwards; min-width: 0; }
 .kpi label { display: block; font-size: .8rem; color: var(--sub); font-weight: 500; }
 .kpi .v { display: block; font-weight: 700; font-size: clamp(1.45rem, 6vw, 2.1rem); letter-spacing: -.02em; margin-top: .2rem; }
 .kpi small { display: block; font-size: .74rem; color: var(--sub); margin-top: .25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -242,7 +242,11 @@ html.dark .sorter button[aria-pressed="true"] { background: #636366; }
 /* ════════ รายชื่อพนักงาน: DOM เดียว → การ์ด (มือถือ) / ตาราง (คอม) ════════ */
 .thead { display: none; }
 .list { display: flex; flex-direction: column; gap: .7rem; }
-.emp { position: relative; border-radius: var(--r-lg); background: var(--card); backdrop-filter: blur(20px) saturate(1.6); -webkit-backdrop-filter: blur(20px) saturate(1.6); border: 1px solid var(--line); box-shadow: var(--shadow); transition: box-shadow .3s, transform .3s var(--ease); animation: rise .55s var(--ease) both; will-change: transform; }
+.emp { position: relative; border-radius: var(--r-lg); background: var(--card); backdrop-filter: blur(20px) saturate(1.6); -webkit-backdrop-filter: blur(20px) saturate(1.6); border: 1px solid var(--line); box-shadow: var(--shadow); transition: box-shadow .3s, transform .3s var(--ease); animation: rise .55s var(--ease) backwards; }
+/* การ์ดนอกจอไม่ต้องคำนวณ/วาด (มือถือ 30+ คน กางการ์ดแล้วหนืด · วัด 4x CPU: 17 → 47 fps) · auto = จำความสูงจริงหลังวาดครั้งแรก
+   ⚠️ ทำให้ของในการ์ดที่ล้นขอบถูกตัด → ละอองทอง (burst) ใส่ .fx-on ชั่วคราวให้ล้นได้ */
+.emp { content-visibility: auto; contain-intrinsic-size: auto 196px; }
+.emp.fx-on { content-visibility: visible; }
 .emp.open { box-shadow: var(--shadow-hi); }
 .emp-head { width: 100%; text-align: left; border: 0; background: none; cursor: pointer; padding: 1rem 1.05rem .9rem; border-radius: var(--r-lg); display: grid; gap: .7rem .4rem; grid-template-columns: repeat(4, 1fr); grid-template-areas: "who who who who" "list uniq calls ans" "orders aov sales con"; transition: transform .15s; }
 .emp-head:active { transform: scale(.993); }
@@ -303,12 +307,12 @@ html.dark .conbar i { background: var(--ink-2); }
 .odo { display: inline-flex !important; align-items: flex-end; height: var(--odo-h); line-height: var(--odo-h) !important; overflow: visible; vertical-align: bottom; white-space: nowrap; font-variant-numeric: tabular-nums; transition: color .6s; }
 .odo .dc, .odo .sc { display: block; height: var(--odo-h); line-height: var(--odo-h); }
 .odo .dc { overflow: hidden; position: relative; }
-.odo .dc > span { display: flex; flex-direction: column; transition: transform .9s var(--ease); will-change: transform; }
+.odo .dc > span { display: flex; flex-direction: column; transition: transform .9s var(--ease); }
 .odo .dc > span > b { display: block; height: var(--odo-h); line-height: var(--odo-h); font-weight: inherit; text-align: center; }
 .odo .pc { margin-left: .04em; opacity: .65; }
 .odo.up { color: var(--up) !important; }
 .odo.down { color: var(--down) !important; }
-.odo .dc.enter { animation: dIn .5s var(--ease) both; }
+.odo .dc.enter { animation: dIn .5s var(--ease) backwards; }
 @keyframes dIn { from { opacity: 0; } to { opacity: 1; } }
 
 .emp-body { overflow: hidden; height: 0; transition: height .55s var(--ease); }
@@ -317,11 +321,11 @@ html.dark .conbar i { background: var(--ink-2); }
 .tabs button { border: 0; background: none; cursor: pointer; padding: .4rem .9rem; border-radius: 8px; font-size: .85rem; font-weight: 500; color: var(--sub); }
 .tabs button[aria-selected="true"] { color: var(--ink); background: var(--card-solid); box-shadow: 0 2px 6px #0000001a; font-weight: 600; }
 html.dark .tabs button[aria-selected="true"] { background: #636366; }
-.panel { animation: fadeUp .35s var(--ease) both; }
+.panel { animation: fadeUp .35s var(--ease) backwards; }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
 .crows { display: flex; flex-direction: column; }
-.crow { display: grid; gap: .2rem .6rem; padding: .65rem 0; border-bottom: 1px solid var(--line); grid-template-columns: 1fr auto; grid-template-areas: "name list" "line line"; animation: rise .45s var(--ease) both; }
+.crow { display: grid; gap: .2rem .6rem; padding: .65rem 0; border-bottom: 1px solid var(--line); grid-template-columns: 1fr auto; grid-template-areas: "name list" "line line"; animation: rise .45s var(--ease) backwards; }
 .crow:last-child { border-bottom: 0; }
 .crow .c-name { grid-area: name; font-size: .92rem; font-weight: 600; display: flex; align-items: center; gap: .5rem; min-width: 0; }
 .crow .c-name i { width: .55rem; height: .55rem; border-radius: 50%; background: var(--cc, var(--accent)); flex: none; }
@@ -349,7 +353,7 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
 .tl-track { position: relative; height: 3.1rem; border-radius: 12px; background: var(--well); overflow: hidden; }
 .tl-break { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--faint) 22%, transparent) 0 4px, transparent 4px 8px); }
 .tl-break span { position: absolute; top: .2rem; left: 50%; transform: translateX(-50%); font-size: .62rem; color: var(--sub); }
-.tl-seg { position: absolute; top: .5rem; height: 1.15rem; border-radius: 6px; background: var(--accent); transform-origin: left; animation: draw 1.1s var(--ease) both; }
+.tl-seg { position: absolute; top: .5rem; height: 1.15rem; border-radius: 6px; background: var(--accent); transform-origin: left; animation: draw 1.1s var(--ease) backwards; }
 .tl-seg.open { background: var(--live); }
 @keyframes draw { from { transform: scaleX(0); } }
 .tl-calls { position: absolute; left: 0; right: 0; bottom: .35rem; height: .5rem; }
@@ -439,9 +443,9 @@ html.dark .tabs button[aria-selected="true"] { background: #636366; }
   .thead span { text-align: center; white-space: nowrap; }
   .thead span:first-child, .thead span.l { text-align: left; }
   .list { gap: .5rem; }
-  .emp { border-radius: 18px; }
+  .emp { border-radius: 18px; contain-intrinsic-size: auto 73px; }
   .emp-head { position: relative; grid-template-columns: var(--cols); grid-template-areas: none; gap: 0 var(--cgap); align-items: center; padding: .85rem 3.4rem .85rem 1.2rem; border-radius: 18px; }
-  .emp:hover { transform: translateY(-1px); box-shadow: var(--shadow-hi); }
+  .emp:hover { box-shadow: var(--shadow-hi); }   /* ไม่ยกการ์ด: เดิมแอนิเมชัน rise (fill both) ทับ transform อยู่แล้ว = ไม่เคยยกจริง · คงหน้าตาเดิม */
   .who, .m { grid-area: auto !important; }
   .who { display: contents; }
   .who .ava { grid-column: 1; grid-row: 1; }
@@ -602,7 +606,7 @@ html.sl-safe .auth { overflow: visible !important; position: static !important; 
 }
 @media (max-width: 600px) {
   /* การ์ดเดียว 2 แถว (4 + 3) · เส้นแบ่งตั้งระหว่างช่อง + เส้นนอนเต็มแถวคั่นกลาง · จัดกลาง · ไม่มีบรรทัดอธิบาย */
-  .summary { gap: 0; padding: .3rem .25rem; border-radius: var(--r-lg); background: var(--card-solid); border: 1px solid var(--line); box-shadow: var(--shadow); animation: rise .6s var(--ease) both; }
+  .summary { gap: 0; padding: .3rem .25rem; border-radius: var(--r-lg); background: var(--card-solid); border: 1px solid var(--line); box-shadow: var(--shadow); animation: rise .6s var(--ease) backwards; }
   .summary .kpi { padding: .7rem .3rem .75rem; text-align: center; background: none; border: 0; box-shadow: none; border-radius: 0; animation: none; backdrop-filter: none; -webkit-backdrop-filter: none; position: relative; }
   .summary .kpi:nth-child(-n+4) { border-bottom: 1px solid var(--line); }
   .summary .kpi:not(:nth-child(1)):not(:nth-child(5))::before { content: ""; position: absolute; left: 0; top: 22%; bottom: 22%; width: 1px; background: var(--line); }
