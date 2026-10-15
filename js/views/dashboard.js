@@ -1,16 +1,17 @@
 // หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
-import { rpc, session, AuthError } from '../api.js?v=63';
-import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS } from '../config.js?v=63';
-import { Odo } from '../odometer.js?v=63';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=63';
-import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=63';
-import { createLive } from '../live.js?v=63';
-import { createNotifyCenter, noteHtml, noteIcon } from '../notify.js?v=63';
-import { pickRange } from '../calendar.js?v=63';
-import { toast, toastText, burst, createEcg, alarmShake } from '../fx.js?v=63';
-import { CHEV, LOGOUT, CAL, REFRESH } from '../icons.js?v=63';
-import { themeToggle, ping } from '../theme.js?v=63';
-import { Snd, soundButton } from '../sound.js?v=63';
+import { rpc, session, AuthError } from '../api.js?v=64';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS, INSTALLER_URL } from '../config.js?v=64';
+import { Odo } from '../odometer.js?v=64';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=64';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=64';
+import { createLive } from '../live.js?v=64';
+import { createNotifyCenter, noteHtml, noteIcon } from '../notify.js?v=64';
+import { pickRange } from '../calendar.js?v=64';
+import { toast, toastText, burst, createEcg, alarmShake } from '../fx.js?v=64';
+import { CHEV, LOGOUT, CAL, REFRESH, HEADSET, DOWNLOAD } from '../icons.js?v=64';
+import { listenMode, isWindows, startListen, openTel, requestInstaller, LISTEN_ERR, READY_KEY, USED_KEY, INSTALL_STEPS } from '../listen.js?v=64';
+import { themeToggle, ping } from '../theme.js?v=64';
+import { Snd, soundButton } from '../sound.js?v=64';
 
 const METRICS = [
   ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],
@@ -120,6 +121,13 @@ export function mountDashboard(root, me, { onLogout }) {
   // ศูนย์แจ้งเตือนวันนี้ (คอม = ปุ่มมุมขวาล่าง · มือถือ = แถบดึงขอบขวา) · แตะรายการ → เลื่อนไปการ์ดพนักงาน
   const nc = createNotifyCenter({ fetchNotes: () => rpc('sup_notes_today', {}), markSeen: () => rpc('sup_notes_seen', {}), onPick: (emp) => { const row = S.rows.get(emp); if (!row) return; row.el.scrollIntoView({ block: 'center', behavior: 'smooth' }); setTimeout(() => { row.el.classList.remove('flash'); void row.el.offsetWidth; row.el.classList.add('flash'); }, 450); } });
   $('.toolbar').append(themeToggle(), soundButton());
+  if (isWindows()) {   // 🎧 ติดตั้ง YaleCom ฟังสาย — คอม Windows เท่านั้น (Mac/มือถือ ไม่มีปุ่ม)
+    const lb = document.createElement('button');
+    lb.className = 'icon-btn listen-btn'; lb.type = 'button'; lb.innerHTML = HEADSET;
+    lb.setAttribute('aria-label', 'ติดตั้ง YaleCom ฟังสาย'); lb.title = 'ติดตั้ง YaleCom ฟังสาย';
+    lb.addEventListener('click', () => openInstall('menu'));
+    $('.toolbar').append(lb);
+  }
   const sumOdo = {}, sumSub = {};
   root.querySelectorAll('.summary [data-k]').forEach((el) => { sumOdo[el.dataset.k] = new Odo(el); });
   root.querySelectorAll('.summary [data-sub]').forEach((el) => { sumSub[el.dataset.sub] = el; });
@@ -561,6 +569,9 @@ export function mountDashboard(root, me, { onLogout }) {
       if (p.c) { S.calling.set(p.emp, { since: Date.parse(p.since) || Date.now(), camp: p.camp || null }); ecg.push(3); } else S.calling.delete(p.emp);   // เริ่มโทร = กระตุกเล็ก
       paintCalling();
       S.rows.get(p.emp)?.updateCall();
+      if (cm?.listen?.emp === p.emp) {   // popup ฟังสายของคนนี้เปิดอยู่: วางสาย → ปิดทันที · สายใหม่ → อัปเดตเวลา/แคมเปญ
+        if (!p.c) { closeCallModal(); toastText(LISTEN_ERR.NOT_CALLING, { icon: '📵' }); } else paintListenInfo();
+      }
     },
     onStatus: (s) => {
       pill.dataset.s = s === 'live' ? 'live' : s === 'history' ? 'history' : 'reconnecting';
@@ -640,6 +651,7 @@ export function mountDashboard(root, me, { onLogout }) {
     }
     if (isLive() && !multi()) for (const row of S.rows.values()) row.updateTime();
     if (isLive()) paintCalling();   // สีป้ายเปลี่ยนตามเวลา → รูปคลื่นตาม
+    if (cm?.listen) paintListenInfo();
   }, 30000);
 
   // ดึงลงเพื่อรีเฟรช (มือถือ)
@@ -724,34 +736,105 @@ export function mountDashboard(root, me, { onLogout }) {
     unlockScroll();
   }
   const onCmKey = (e) => { if (e.key === 'Escape') closeCallModal(); };
-  function openCallModal(b) {
-    const since = Number(b.dataset.since); if (!since) return;
+  // modal กลางจอ (ใช้ร่วม: ข้อมูลกำลังโทรบนมือถือ · ฟังสาย · ติดตั้ง) · [data-close] / × / พื้นหลัง / Esc = ปิด
+  function openModal({ label, html, cls = '', focus = '.cm-ok' }) {
     closeCallModal(); hideTip();
-    const emp = b.closest('.emp'), nm = emp?.querySelector('.nm')?.textContent || '', code = emp?.querySelector('.code')?.textContent || '';
     const ov = document.createElement('div'); ov.className = 'cm-ov';
-    const box = document.createElement('div'); box.className = 'callmodal'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true');
-    box.setAttribute('aria-label', `กำลังโทร ${nm}`.trim());
-    box.innerHTML = `<button class="cm-x" type="button" aria-label="ปิด">${CLOSE}</button>`
-      + (nm || code ? `<div class="cm-who"><b>${esc(nm)}</b>${code && code !== nm ? `<span>${esc(code)}</span>` : ''}</div>` : '')
-      + fillCallInfo(box, b, since)
-      + `<button class="cm-ok" type="button">ปิด</button>`;
+    const box = document.createElement('div'); box.className = `callmodal ${cls}`.trim(); box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true');
+    box.setAttribute('aria-label', label);
+    box.innerHTML = `<button class="cm-x" type="button" aria-label="ปิด">${CLOSE}</button>` + html;
     for (const el of [ov, box]) el.addEventListener('touchmove', stopTouch, { passive: false });   // กันลากแล้วหน้าหลังเลื่อน/เด้ง
     ov.addEventListener('click', closeCallModal);
-    box.querySelector('.cm-x').addEventListener('click', closeCallModal);
-    box.querySelector('.cm-ok').addEventListener('click', closeCallModal);
+    box.querySelectorAll('.cm-x, [data-close]').forEach((x) => x.addEventListener('click', closeCallModal));
     document.addEventListener('keydown', onCmKey);
     lockScroll();
     document.body.append(ov, box);
     cm = { ov, box };
     Snd.tap();
-    box.querySelector('.cm-ok').focus({ preventScroll: true });
+    box.querySelector(focus)?.focus({ preventScroll: true });
+    return box;
+  }
+  const whoHtml = (nm, code) => (nm || code ? `<div class="cm-who"><b>${esc(nm)}</b>${code && code !== nm ? `<span>${esc(code)}</span>` : ''}</div>` : '');
+  function openCallModal(b) {
+    const since = Number(b.dataset.since); if (!since) return;
+    const emp = b.closest('.emp'), nm = emp?.querySelector('.nm')?.textContent || '', code = emp?.querySelector('.code')?.textContent || '';
+    const box = openModal({ label: `กำลังโทร ${nm}`.trim(), html: whoHtml(nm, code) + '<div class="cm-info"></div><button class="cm-ok" type="button" data-close>ปิด</button>' });
+    box.querySelector('.cm-info').innerHTML = fillCallInfo(box, b, since);
+  }
+
+  // ════════ 🎧 ฟังสาย (คอม Windows + เมาส์ + เคยกดติดตั้ง) · คลิกป้ายกำลังโทร → ถามยืนยันทุกครั้ง ════════
+  // RPC sup_listen_start ตรวจสิทธิ์ทีม + กำลังโทรจริง + บันทึก log → คืนเบอร์ภายใน → tel:*222<เบอร์> ให้ YaleCom
+  function paintListenInfo() {
+    const L = cm?.listen; if (!L) return;
+    const c = S.calling.get(L.emp); if (!c) return;
+    L.info.innerHTML = fillCallInfo(L.box, { dataset: { camp: c.camp || '' } }, c.since);
+  }
+  function openListen(b) {
+    const empEl = b.closest('.emp'), emp = empEl?.dataset.emp;
+    if (!emp || !S.calling.has(emp)) return;
+    const nm = empEl.querySelector('.nm')?.textContent || emp, first = localStorage.getItem(USED_KEY) !== '1';
+    const box = openModal({ label: `ฟังสาย ${nm}`, cls: 'listen', focus: '.lm-go', html:
+      `<div class="lm-head">${HEADSET}<span>ฟังสาย</span></div>` + whoHtml(nm, emp) + '<div class="cm-info"></div>'
+      + '<p class="lm-note">YaleCom จะโทรเข้าไปฟังเงียบ ๆ (พนักงานและลูกค้าไม่ได้ยินเรา)</p>'
+      + (first ? '<p class="lm-hint">ครั้งแรก: ถ้า Chrome ถาม "เปิด Yale Com?" ให้ติ๊ก <b>อนุญาตเสมอ</b> แล้วกดเปิด</p>' : '')
+      + '<p class="lm-err" role="alert" hidden></p>'
+      + `<div class="lm-btns"><button class="cm-ok" type="button" data-close>ยกเลิก</button><button class="lm-go" type="button">${HEADSET}<span>ฟังสาย</span></button></div>` });
+    cm.listen = { emp, box, info: box.querySelector('.cm-info') };
+    paintListenInfo();
+    const go = box.querySelector('.lm-go'), err = box.querySelector('.lm-err');
+    let pending = null;
+    const done = () => { localStorage.setItem(USED_KEY, '1'); closeCallModal(); toastText(`สั่ง YaleCom ฟังสาย ${nm} แล้ว`, { icon: '🎧' }); };
+    go.addEventListener('click', async () => {
+      if (pending) { openTel(pending); done(); return; }   // คลิกใหม่ = เปิด tel ได้ (ไม่เรียก RPC ซ้ำ · log บันทึกแล้ว)
+      if (go.disabled) return;
+      go.disabled = true; go.classList.add('busy'); err.hidden = true;
+      let r;
+      try { r = await startListen({ emp, rpc, open: openTel, isAuthError: (e) => e instanceof AuthError }); }
+      catch { closeCallModal(); return; }   // เซสชันหมดอายุ → app เด้งไปหน้า login เอง
+      if (cm?.box !== box) return;   // popup ถูกปิดไปแล้ว (พนักงานวางสาย/กดปิด)
+      go.disabled = false; go.classList.remove('busy');
+      if (r.status === 'dialed') return done();
+      if (r.status === 'needs_click') { pending = r.uri; go.classList.add('again'); go.querySelector('span').textContent = 'กดอีกครั้งเพื่อเริ่มฟัง'; go.focus({ preventScroll: true }); return; }
+      if (r.code === 'NOT_CALLING') { closeCallModal(); toastText(LISTEN_ERR.NOT_CALLING, { icon: '📵' }); return; }
+      err.textContent = LISTEN_ERR[r.code] || LISTEN_ERR.ERR; err.hidden = false;
+    });
+  }
+  // กล่องติดตั้ง: 'need' = คลิกป้ายแต่เครื่องนี้ยังไม่เคยติดตั้ง · 'menu' = ปุ่มในแถบเครื่องมือ
+  function openInstall(kind) {
+    const box = openModal({ label: 'ติดตั้ง YaleCom หัวหน้า', cls: 'listen install', focus: '.lm-go', html:
+      `<div class="lm-head">${HEADSET}<span>${kind === 'need' ? 'ต้องติดตั้ง YaleCom หัวหน้าก่อน' : 'ติดตั้ง YaleCom ฟังสาย'}</span></div>`
+      + '<p class="lm-note">ใช้ได้เฉพาะคอม Windows · ติดตั้งครั้งเดียวต่อเครื่อง</p>'
+      + `<ol class="lm-steps">${INSTALL_STEPS.map((x) => `<li>${x}</li>`).join('')}</ol>`
+      + '<p class="lm-hint">⚠️ ไฟล์นี้มีบัญชีหัวหน้าฝังอยู่ ห้ามส่งต่อ · ลิงก์ดาวน์โหลดใช้ได้ 5 นาที</p>'
+      + '<p class="lm-err" role="alert" hidden></p><p class="lm-ok" role="status" hidden></p>'
+      + `<div class="lm-btns"><button class="cm-ok" type="button" data-close>ปิด</button><button class="lm-go" type="button">${DOWNLOAD}<span>ดาวน์โหลด</span></button></div>` });
+    const go = box.querySelector('.lm-go'), err = box.querySelector('.lm-err'), okm = box.querySelector('.lm-ok');
+    go.addEventListener('click', async () => {
+      if (go.disabled) return;
+      go.disabled = true; go.classList.add('busy'); err.hidden = true; okm.hidden = true;
+      const r = await requestInstaller({ url: INSTALLER_URL, token: session.get()?.token });
+      if (cm?.box !== box) return;
+      go.disabled = false; go.classList.remove('busy');
+      if (!r.ok) { err.textContent = LISTEN_ERR[r.code] || LISTEN_ERR.ERR; err.hidden = false; return; }
+      localStorage.setItem(READY_KEY, '1');   // เจ้านาย: จำว่าเครื่องนี้กดติดตั้งจากปุ่มแล้วพอ
+      const a = document.createElement('a'); a.href = r.url; a.download = 'YaleCom-Supervisor.exe'; a.rel = 'noopener'; a.style.display = 'none';
+      document.body.append(a); a.click(); a.remove();
+      okm.textContent = 'เริ่มดาวน์โหลดแล้ว ติดตั้งตามขั้นตอนด้านบน เสร็จแล้วคลิกป้าย "กำลังโทร" เพื่อฟังสายได้เลย'; okm.hidden = false;
+      go.querySelector('span').textContent = 'ดาวน์โหลดอีกครั้ง';
+    });
   }
   root.addEventListener('pointerdown', (e) => { lastPt = e.pointerType || 'mouse'; }, true);
   root.addEventListener('click', (e) => {
-    if (lastPt === 'mouse') return;   // เมาส์ = calltip ตอนชี้ (แตะ/คลิกป้าย = เปิดการ์ดเหมือนเดิม)
     const b = e.target.closest?.('.calling'); if (!b || b.hidden || !Number(b.dataset.since)) return;
+    if (lastPt === 'mouse') {   // เมาส์ = calltip ตอนชี้ · คลิก: Windows → ฟังสาย/ติดตั้ง · Mac/อื่น ๆ → เปิดการ์ดเหมือนเดิม
+      const mode = listenMode({ pointer: 'mouse', ready: localStorage.getItem(READY_KEY) === '1' });
+      if (mode === 'none') return;
+      e.preventDefault(); e.stopPropagation();
+      if (mode === 'listen') openListen(b); else openInstall('need');
+      return;
+    }
     e.preventDefault(); e.stopPropagation();   // ไม่ส่งต่อให้ปุ่มหัวการ์ด (ไม่เปิด/ปิดการ์ด)
-    openCallModal(b);
+    openCallModal(b);   // มือถือ/แท็บเล็ต = ข้อมูลอย่างเดียว ไม่มีฟังสายเด็ดขาด
   }, true);
 
   return { destroy() { clearInterval(clock); live.stop(); ro.disconnect(); nc.destroy(); tip.remove(); closeCallModal(); removeEventListener('scroll', hideTip, { capture: true }); } };

@@ -2,6 +2,7 @@
 export const SB_URL = 'https://swbxecjguiohpwllvues.supabase.co';
 export const SB_KEY = 'sb_publishable_oim8cwqX7j-8PTLLtRqftg_EORk-EYE';
 export const AUTH_URL = SB_URL + '/functions/v1/sup-auth';
+export const INSTALLER_URL = SB_URL + '/functions/v1/sup-installer';   // ลิงก์ตัวติดตั้ง YaleCom หัวหน้า (ฟังสาย)
 export const NO_CAMPAIGN = 'ระบุแคมเปญไม่ได้';
 export const TOTAL = '__total__';
 // ลำดับแสดงผล = ลำดับใน crm-main/campaign-config.html + ระบุแคมเปญไม่ได้

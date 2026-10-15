@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "63";
+  --build: "64";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -672,6 +672,32 @@ html.dark .calltip, html.dark .callmodal { --ct-col: #ff9f0a; } html.dark .callt
 .callmodal .ct-row { padding: .12rem 0; }
 .callmodal .ct-warn { font-size: .8rem; padding: .15rem .6rem; }
 .cm-ok { display: block; width: 100%; min-height: 2.9rem; margin-top: 1rem; border: 0; border-radius: 14px; background: var(--well); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+/* 🎧 ฟังสาย + ติดตั้ง YaleCom (คอม Windows) · ใช้โครง .callmodal */
+.callmodal.listen { width: min(23rem, calc(100vw - 2.5rem)); font-size: .9rem; }
+.callmodal.install { width: min(27rem, calc(100vw - 2.5rem)); max-height: calc(100vh - 2rem); overflow-y: auto; touch-action: auto; }
+.lm-head { display: flex; align-items: center; gap: .45rem; padding-right: 2.9rem; margin-bottom: .5rem; min-height: 2.5rem; font-weight: 700; font-size: 1.05rem; color: var(--accent); }
+.lm-head svg { width: 1.25rem; height: 1.25rem; flex: none; }
+.callmodal.listen .cm-who { min-height: 0; padding-right: 0; margin-bottom: .45rem; }
+.lm-note { margin: .65rem 0 0; font-size: .78rem; color: var(--sub); }
+.lm-hint { margin: .55rem 0 0; padding: .45rem .65rem; border-radius: 12px; background: var(--accent-soft); font-size: .78rem; line-height: 1.5; }
+.lm-err, .lm-ok { margin: .6rem 0 0; padding: .45rem .65rem; border-radius: 12px; font-size: .8rem; font-weight: 600; line-height: 1.5; }
+.lm-err { color: var(--down); background: color-mix(in srgb, var(--down) 10%, transparent); }
+.lm-ok { color: var(--live); background: color-mix(in srgb, var(--live) 12%, transparent); }
+.lm-err[hidden], .lm-ok[hidden] { display: none; }
+.lm-steps { margin: .55rem 0 0; padding-left: 1.25rem; font-size: .82rem; line-height: 1.55; }
+.lm-steps li + li { margin-top: .3rem; }
+.lm-btns { display: grid; grid-template-columns: 1fr 1.5fr; gap: .6rem; margin-top: 1rem; }
+.lm-btns .cm-ok { margin-top: 0; }
+.lm-go { display: flex; align-items: center; justify-content: center; gap: .4rem; min-height: 2.9rem; border: 0; border-radius: 14px; background: var(--accent); color: #fff; font: inherit; font-weight: 700; cursor: pointer; transition: transform .2s var(--spring), filter .2s; }
+.lm-go svg { width: 1.1rem; height: 1.1rem; flex: none; }
+.lm-go:hover { filter: brightness(1.08); }
+.lm-go:active { transform: scale(.97); }
+.lm-go:disabled { cursor: progress; }
+.lm-go.busy svg { animation: lmBusy 1s linear infinite; }
+.lm-go.again { background: var(--live); animation: lmPulse 1.2s ease-in-out infinite; }
+@keyframes lmBusy { 50% { opacity: .35; } }
+@keyframes lmPulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--live) 25%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .lm-go.again, .lm-go.busy svg { animation: none; } }
 @keyframes cmIn { from { opacity: 0; transform: translate(-50%, -46%) scale(.94); } }
 @keyframes cmOut { to { opacity: 0; transform: translate(-50%, -48%) scale(.97); } }
 .who-txt b .calling { display: none; }   /* คอม: โชว์ตัวหลังรหัส */
