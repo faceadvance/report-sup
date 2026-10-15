@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "64";
+  --build: "65";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -201,6 +201,7 @@ html.dark .key { box-shadow: none; }
 .live-pill[data-s="reconnecting"] i { animation-duration: .6s; }
 .live-pill[data-s="history"] { color: var(--sub); }
 .live-pill[data-s="history"] i { animation: none; opacity: .6; }
+.top-row .live-pill { margin-left: .45rem; padding-left: .8rem; border-left: 1px solid var(--line-2); font-size: .78rem; white-space: nowrap; }   /* คอม: ต่อท้ายโลโก้ */
 .hero h1 { margin: .25rem 0 0; font-size: clamp(2rem, 7vw, 3.4rem); font-weight: 700; letter-spacing: -.03em; line-height: 1.08; }
 .range-label { display: block; margin-top: .45rem; font-size: clamp(.95rem, 2.6vw, 1.15rem); color: var(--sub); }
 .range-label b { color: var(--ink-2); font-weight: 500; }
@@ -693,6 +694,7 @@ html.dark .calltip, html.dark .callmodal { --ct-col: #ff9f0a; } html.dark .callt
 .lm-go:hover { filter: brightness(1.08); }
 .lm-go:active { transform: scale(.97); }
 .lm-go:disabled { cursor: progress; }
+.lm-go:disabled:not(.busy) { opacity: .4; cursor: not-allowed; filter: none; transform: none; }   /* คอมไม่ใช่ Windows: โหลดไม่ได้ */
 .lm-go.busy svg { animation: lmBusy 1s linear infinite; }
 .lm-go.again { background: var(--live); animation: lmPulse 1.2s ease-in-out infinite; }
 @keyframes lmBusy { 50% { opacity: .35; } }
