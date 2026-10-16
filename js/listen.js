@@ -20,12 +20,11 @@ export const LISTEN_ERR = {
 const ua0 = () => (typeof navigator !== 'undefined' ? navigator.userAgent : '');
 export const isWindows = (ua = ua0()) => /Windows NT \d/.test(ua || '') && !/Windows Phone/i.test(ua || '');
 
-// 'listen' = ฟังได้ · 'install' = Windows แต่ยังไม่เคยติดตั้ง · 'nowin' = คอมไม่ใช่ Windows (กล่องบอกวิธี ไม่มีปุ่มโหลด)
-// 'none' = แตะจอ (มือถือ/แท็บเล็ต) → modal ข้อมูลเดิม ไม่มีฟังสาย
+// 'listen' = คอม Windows + เมาส์ + เครื่องนี้เคยกดดาวน์โหลดตัวติดตั้งแล้ว → คลิกป้าย = popup ฟังสาย
+// 'none' = อย่างอื่นทั้งหมด → ทำเหมือนก่อนมีฟังสาย (เมาส์ = เปิดการ์ด · แตะจอ = modal ข้อมูล)
+// เจ้านาย 10-16: เครื่องที่ยังไม่ได้โหลดโปรแกรม ห้ามเด้ง popup ติดตั้ง · โหลดได้จากปุ่ม 🎧 ในแถบเครื่องมือเท่านั้น
 export function listenMode({ ua = ua0(), pointer, ready }) {
-  if (pointer !== 'mouse') return 'none';
-  if (!isWindows(ua)) return 'nowin';
-  return ready ? 'listen' : 'install';
+  return pointer === 'mouse' && ready && isWindows(ua) ? 'listen' : 'none';
 }
 
 // ตัวเลข 2–6 หลักเท่านั้น (DB check เดียวกัน) · อย่างอื่น = null (ไม่โทร)

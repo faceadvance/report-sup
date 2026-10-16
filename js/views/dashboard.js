@@ -1,17 +1,17 @@
 // หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
-import { rpc, session, AuthError } from '../api.js?v=65';
-import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS, INSTALLER_URL } from '../config.js?v=65';
-import { Odo } from '../odometer.js?v=65';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=65';
-import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=65';
-import { createLive } from '../live.js?v=65';
-import { createNotifyCenter, noteHtml, noteIcon } from '../notify.js?v=65';
-import { pickRange } from '../calendar.js?v=65';
-import { toast, toastText, burst, createEcg, alarmShake } from '../fx.js?v=65';
-import { CHEV, LOGOUT, CAL, REFRESH, HEADSET, DOWNLOAD } from '../icons.js?v=65';
-import { listenMode, isWindows, startListen, openTel, requestInstaller, LISTEN_ERR, READY_KEY, USED_KEY, INSTALL_STEPS } from '../listen.js?v=65';
-import { themeToggle, ping } from '../theme.js?v=65';
-import { Snd, soundButton } from '../sound.js?v=65';
+import { rpc, session, AuthError } from '../api.js?v=66';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS, INSTALLER_URL } from '../config.js?v=66';
+import { Odo } from '../odometer.js?v=66';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=66';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=66';
+import { createLive } from '../live.js?v=66';
+import { createNotifyCenter, noteHtml, noteIcon } from '../notify.js?v=66';
+import { pickRange } from '../calendar.js?v=66';
+import { toast, toastText, burst, createEcg, alarmShake } from '../fx.js?v=66';
+import { CHEV, LOGOUT, CAL, REFRESH, HEADSET, DOWNLOAD } from '../icons.js?v=66';
+import { listenMode, isWindows, startListen, openTel, requestInstaller, LISTEN_ERR, READY_KEY, USED_KEY, INSTALL_STEPS } from '../listen.js?v=66';
+import { themeToggle, ping } from '../theme.js?v=66';
+import { Snd, soundButton } from '../sound.js?v=66';
 
 const METRICS = [
   ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],
@@ -129,7 +129,7 @@ export function mountDashboard(root, me, { onLogout }) {
     const lb = document.createElement('button');
     lb.className = 'icon-btn listen-btn'; lb.type = 'button'; lb.innerHTML = HEADSET;
     lb.setAttribute('aria-label', 'ติดตั้ง YaleCom ฟังสาย'); lb.title = 'ติดตั้ง YaleCom ฟังสาย';
-    lb.addEventListener('click', () => openInstall('menu'));
+    lb.addEventListener('click', () => openInstall());
     $('.toolbar').append(lb);
   }
   const sumOdo = {}, sumSub = {};
@@ -803,20 +803,16 @@ export function mountDashboard(root, me, { onLogout }) {
       err.textContent = LISTEN_ERR[r.code] || LISTEN_ERR.ERR; err.hidden = false;
     });
   }
-  // กล่องติดตั้ง: 'need' = คลิกป้ายแต่เครื่องนี้ยังไม่เคยติดตั้ง · 'menu' = ปุ่มในแถบเครื่องมือ
-  //             'nowin' = คอมไม่ใช่ Windows (Mac ฯลฯ) → บอกวิธี + ปุ่มโหลดปิด (ไฟล์ .exe ใช้ได้แค่ Windows)
-  function openInstall(kind) {
-    const nowin = kind === 'nowin';
-    const box = openModal({ label: 'ติดตั้ง YaleCom หัวหน้า', cls: 'listen install', focus: nowin ? '.cm-ok' : '.lm-go', html:
-      `<div class="lm-head">${HEADSET}<span>${kind === 'menu' ? 'ติดตั้ง YaleCom ฟังสาย' : 'ต้องติดตั้ง YaleCom หัวหน้าก่อน'}</span></div>`
-      + (nowin ? '<p class="lm-err">ฟังสายใช้ได้เฉพาะคอม Windows · เปิด Sup Live บนคอม Windows แล้วคลิกป้าย "กำลังโทร" อีกครั้งเพื่อดาวน์โหลด</p>'
-               : '<p class="lm-note">ใช้ได้เฉพาะคอม Windows · ติดตั้งครั้งเดียวต่อเครื่อง</p>')
+  // กล่องติดตั้ง — เปิดจากปุ่ม 🎧 ในแถบเครื่องมือเท่านั้น (คอม Windows)
+  function openInstall() {
+    const box = openModal({ label: 'ติดตั้ง YaleCom หัวหน้า', cls: 'listen install', focus: '.lm-go', html:
+      `<div class="lm-head">${HEADSET}<span>ติดตั้ง YaleCom ฟังสาย</span></div>`
+      + '<p class="lm-note">ใช้ได้เฉพาะคอม Windows · ติดตั้งครั้งเดียวต่อเครื่อง</p>'
       + `<ol class="lm-steps">${INSTALL_STEPS.map((x) => `<li>${x}</li>`).join('')}</ol>`
       + '<p class="lm-hint">⚠️ ไฟล์นี้มีบัญชีหัวหน้าฝังอยู่ ห้ามส่งต่อ · ลิงก์ดาวน์โหลดใช้ได้ 5 นาที</p>'
       + '<p class="lm-err" role="alert" hidden></p><p class="lm-ok" role="status" hidden></p>'
       + `<div class="lm-btns"><button class="cm-ok" type="button" data-close>ปิด</button><button class="lm-go" type="button">${DOWNLOAD}<span>ดาวน์โหลด</span></button></div>` });
     const go = box.querySelector('.lm-go'), err = box.querySelector('.lm-err[hidden]'), okm = box.querySelector('.lm-ok');
-    if (nowin) { go.disabled = true; go.title = 'ดาวน์โหลดได้เฉพาะคอม Windows'; return; }
     go.addEventListener('click', async () => {
       if (go.disabled) return;
       go.disabled = true; go.classList.add('busy'); err.hidden = true; okm.hidden = true;
@@ -834,11 +830,10 @@ export function mountDashboard(root, me, { onLogout }) {
   root.addEventListener('pointerdown', (e) => { lastPt = e.pointerType || 'mouse'; }, true);
   root.addEventListener('click', (e) => {
     const b = e.target.closest?.('.calling'); if (!b || b.hidden || !Number(b.dataset.since)) return;
-    if (lastPt === 'mouse') {   // เมาส์ = calltip ตอนชี้ · คลิก: Windows → ฟังสาย/ติดตั้ง · Mac/อื่น ๆ → กล่องบอกว่าต้องใช้คอม Windows
-      const mode = listenMode({ pointer: 'mouse', ready: localStorage.getItem(READY_KEY) === '1' });
-      if (mode === 'none') return;
+    if (lastPt === 'mouse') {   // เมาส์ = calltip ตอนชี้ · คลิก: เครื่องที่โหลดตัวติดตั้งแล้ว (Windows) → popup ฟังสาย · อื่น ๆ → เปิดการ์ดเหมือนก่อนมีฟังสาย
+      if (listenMode({ pointer: 'mouse', ready: localStorage.getItem(READY_KEY) === '1' }) !== 'listen') return;
       e.preventDefault(); e.stopPropagation();
-      if (mode === 'listen') openListen(b); else openInstall(mode === 'nowin' ? 'nowin' : 'need');
+      openListen(b);
       return;
     }
     e.preventDefault(); e.stopPropagation();   // ไม่ส่งต่อให้ปุ่มหัวการ์ด (ไม่เปิด/ปิดการ์ด)
