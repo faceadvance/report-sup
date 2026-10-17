@@ -1,17 +1,17 @@
 // หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
-import { rpc, session, AuthError } from '../api.js?v=66';
-import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS, INSTALLER_URL } from '../config.js?v=66';
-import { Odo } from '../odometer.js?v=66';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=66';
-import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=66';
-import { createLive } from '../live.js?v=66';
-import { createNotifyCenter, noteHtml, noteIcon } from '../notify.js?v=66';
-import { pickRange } from '../calendar.js?v=66';
-import { toast, toastText, burst, createEcg, alarmShake } from '../fx.js?v=66';
-import { CHEV, LOGOUT, CAL, REFRESH, HEADSET, DOWNLOAD } from '../icons.js?v=66';
-import { listenMode, isWindows, startListen, openTel, requestInstaller, LISTEN_ERR, READY_KEY, USED_KEY, INSTALL_STEPS } from '../listen.js?v=66';
-import { themeToggle, ping } from '../theme.js?v=66';
-import { Snd, soundButton } from '../sound.js?v=66';
+import { rpc, session, AuthError } from '../api.js?v=67';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS, INSTALLER_URL } from '../config.js?v=67';
+import { Odo } from '../odometer.js?v=67';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=67';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=67';
+import { createLive } from '../live.js?v=67';
+import { createNotifyCenter, noteHtml, noteIcon } from '../notify.js?v=67';
+import { pickRange } from '../calendar.js?v=67';
+import { toast, toastText, burst, createEcg, alarmShake } from '../fx.js?v=67';
+import { CHEV, LOGOUT, CAL, REFRESH, HEADSET, WHISPER, DOWNLOAD } from '../icons.js?v=67';
+import { listenMode, isWindows, startListen, openTel, requestInstaller, LISTEN_ERR, READY_KEY, USED_KEY, INSTALL_STEPS } from '../listen.js?v=67';
+import { themeToggle, ping } from '../theme.js?v=67';
+import { Snd, soundButton } from '../sound.js?v=67';
 
 const METRICS = [
   ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],
@@ -777,28 +777,34 @@ export function mountDashboard(root, me, { onLogout }) {
     const empEl = b.closest('.emp'), emp = empEl?.dataset.emp;
     if (!emp || !S.calling.has(emp)) return;
     const nm = empEl.querySelector('.nm')?.textContent || emp, first = localStorage.getItem(USED_KEY) !== '1';
-    const box = openModal({ label: `ฟังสาย ${nm}`, cls: 'listen', focus: '.lm-go', html:
+    // 2 ปุ่ม: 🎧 ฟังสาย (*222 · เงียบ) · 💬 แนะนำในสาย (*223 · พนักงานได้ยินเรา ลูกค้าไม่ได้ยิน) — เจ้านาย 10-17
+    const MODES = { listen: { icon: HEADSET, label: 'ฟังสาย', sub: 'ฟังเงียบ ๆ ไม่มีใครได้ยินเรา', again: 'กดอีกครั้งเพื่อเริ่มฟัง', toast: 'ฟังสาย', tIcon: '🎧' },
+                    whisper: { icon: WHISPER, label: 'แนะนำในสาย', sub: 'พนักงานได้ยิน ลูกค้าไม่ได้ยิน', again: 'กดอีกครั้งเพื่อเริ่มแนะนำ', toast: 'แนะนำในสาย', tIcon: '💬' } };
+    const box = openModal({ label: `ฟังสาย ${nm}`, cls: 'listen', focus: '.lm-go[data-mode="listen"]', html:
       `<div class="lm-head">${HEADSET}<span>ฟังสาย</span></div>` + whoHtml(nm, emp) + '<div class="cm-info"></div>'
-      + '<p class="lm-note">YaleCom จะโทรเข้าไปฟังเงียบ ๆ (พนักงานและลูกค้าไม่ได้ยินเรา)</p>'
       + (first ? '<p class="lm-hint">ครั้งแรก: ถ้า Chrome ถาม "เปิด Yale Com?" ให้ติ๊ก <b>อนุญาตเสมอ</b> แล้วกดเปิด</p>' : '')
       + '<p class="lm-err" role="alert" hidden></p>'
-      + `<div class="lm-btns"><button class="cm-ok" type="button" data-close>ยกเลิก</button><button class="lm-go" type="button">${HEADSET}<span>ฟังสาย</span></button></div>` });
+      + '<div class="lm-btns lm-two">' + Object.entries(MODES).map(([k, m]) => `<button class="lm-go${k === 'whisper' ? ' lm-whisper' : ''}" type="button" data-mode="${k}">${m.icon}<span class="lm-t"><span class="lm-lab">${m.label}</span><small>${m.sub}</small></span></button>`).join('')
+      + '<button class="cm-ok" type="button" data-close>ยกเลิก</button></div>' });
     cm.listen = { emp, box, info: box.querySelector('.cm-info') };
     paintListenInfo();
-    const go = box.querySelector('.lm-go'), err = box.querySelector('.lm-err');
-    let pending = null;
-    const done = () => { localStorage.setItem(USED_KEY, '1'); closeCallModal(); toastText(`สั่ง YaleCom ฟังสาย ${nm} แล้ว`, { icon: '🎧' }); };
-    go.addEventListener('click', async () => {
-      if (pending) { openTel(pending); done(); return; }   // คลิกใหม่ = เปิด tel ได้ (ไม่เรียก RPC ซ้ำ · log บันทึกแล้ว)
-      if (go.disabled) return;
-      go.disabled = true; go.classList.add('busy'); err.hidden = true;
+    const gos = [...box.querySelectorAll('.lm-go')], err = box.querySelector('.lm-err');
+    let pending = null, pendMode = null, busy = false;
+    const done = (k) => { localStorage.setItem(USED_KEY, '1'); closeCallModal(); toastText(`สั่ง YaleCom ${MODES[k].toast} ${nm} แล้ว`, { icon: MODES[k].tIcon }); };
+    for (const go of gos) go.addEventListener('click', async () => {
+      const k = go.dataset.mode;
+      if (pending && pendMode === k) { openTel(pending); done(k); return; }   // คลิกใหม่ = เปิด tel ได้ (ไม่เรียก RPC ซ้ำ · log บันทึกแล้ว)
+      if (busy) return;   // กันกด 2 ปุ่มซ้อน
+      busy = true; pending = null; pendMode = null;
+      gos.forEach((g) => { g.disabled = true; g.classList.remove('again'); g.querySelector('.lm-lab').textContent = MODES[g.dataset.mode].label; });
+      go.classList.add('busy'); err.hidden = true;
       let r;
-      try { r = await startListen({ emp, rpc, open: openTel, isAuthError: (e) => e instanceof AuthError }); }
+      try { r = await startListen({ emp, mode: k, rpc, open: openTel, isAuthError: (e) => e instanceof AuthError }); }
       catch { closeCallModal(); return; }   // เซสชันหมดอายุ → app เด้งไปหน้า login เอง
       if (cm?.box !== box) return;   // popup ถูกปิดไปแล้ว (พนักงานวางสาย/กดปิด)
-      go.disabled = false; go.classList.remove('busy');
-      if (r.status === 'dialed') return done();
-      if (r.status === 'needs_click') { pending = r.uri; go.classList.add('again'); go.querySelector('span').textContent = 'กดอีกครั้งเพื่อเริ่มฟัง'; go.focus({ preventScroll: true }); return; }
+      busy = false; gos.forEach((g) => { g.disabled = false; }); go.classList.remove('busy');
+      if (r.status === 'dialed') return done(k);
+      if (r.status === 'needs_click') { pending = r.uri; pendMode = k; go.classList.add('again'); go.querySelector('.lm-lab').textContent = MODES[k].again; go.focus({ preventScroll: true }); return; }
       if (r.code === 'NOT_CALLING') { closeCallModal(); toastText(LISTEN_ERR.NOT_CALLING, { icon: '📵' }); return; }
       err.textContent = LISTEN_ERR[r.code] || LISTEN_ERR.ERR; err.hidden = false;
     });

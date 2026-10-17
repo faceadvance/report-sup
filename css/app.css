@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "66";
+  --build: "67";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -689,6 +689,13 @@ html.dark .calltip, html.dark .callmodal { --ct-col: #ff9f0a; } html.dark .callt
 .lm-steps li + li { margin-top: .3rem; }
 .lm-btns { display: grid; grid-template-columns: 1fr 1.5fr; gap: .6rem; margin-top: 1rem; }
 .lm-btns .cm-ok { margin-top: 0; }
+.lm-btns.lm-two { grid-template-columns: 1fr 1fr; }   /* ฟังสาย | แนะนำในสาย · ยกเลิกเต็มแถวล่าง */
+.lm-btns.lm-two .cm-ok { grid-column: 1 / -1; }
+.lm-two .lm-go { flex-direction: column; gap: .25rem; padding: .6rem .5rem; text-align: center; }
+.lm-t { display: flex; flex-direction: column; align-items: center; gap: .1rem; line-height: 1.2; }
+.lm-t small { font-size: .68rem; font-weight: 500; opacity: .85; }
+.lm-go.lm-whisper { background: color-mix(in srgb, var(--accent) 10%, var(--card-solid)); color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.lm-go.lm-whisper.again { color: #fff; box-shadow: none; }
 .lm-go { display: flex; align-items: center; justify-content: center; gap: .4rem; min-height: 2.9rem; border: 0; border-radius: 14px; background: var(--accent); color: #fff; font: inherit; font-weight: 700; cursor: pointer; transition: transform .2s var(--spring), filter .2s; }
 .lm-go svg { width: 1.1rem; height: 1.1rem; flex: none; }
 .lm-go:hover { filter: brightness(1.08); }

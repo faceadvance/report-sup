@@ -1,7 +1,9 @@
-// ฟังสาย (Listen *222) — ฟังก์ชันล้วน ไม่แตะ DOM ยกเว้น openTel · เทส: node supabase/sup-live/tests/listen.test.mjs
+// ฟังสาย (Listen *222) + แนะนำในสาย (Whisper *223 · 10-17) — ฟังก์ชันล้วน ไม่แตะ DOM ยกเว้น openTel · เทส: node supabase/sup-live/tests/listen.test.mjs
 // เฉพาะ Windows + เมาส์ + เคยกดปุ่มติดตั้ง (เว็บตรวจไม่ได้ว่าลง YaleCom จริงไหม → ใช้ "เคยกดติดตั้ง" แทน)
 // ⚠️ Mac (ต่อ iPhone) / มือถือ: ลิงก์ tel:*222… = โทรออกจริงทางซิม/FaceTime → ห้ามเปิดเด็ดขาด
 export const LISTEN_PREFIX = '*222';
+// โหมด → รหัสฟีเจอร์ Yale (server ประกอบเบอร์เองจากโหมด · ตรงนี้ใช้ตรวจซ้ำอีกชั้น) · ห้ามเพิ่ม *225 แทรกสาย โดยไม่ผ่านเจ้านาย
+export const LISTEN_MODES = { listen: '*222', whisper: '*223' };
 export const READY_KEY = 'sl_listen_ready';   // '1' = เคยกดดาวน์โหลดตัวติดตั้งในเครื่องนี้
 export const USED_KEY = 'sl_listen_used';     // '1' = เคยสั่งฟังแล้ว (ไม่ต้องโชว์คำแนะนำ Chrome ถามครั้งแรก)
 export const GESTURE_MS = 4000;               // Chrome เปิด tel: ได้เฉพาะช่วงสั้น ๆ หลังคลิก (~5 วิ) → เผื่อไว้ 4 วิ
@@ -12,6 +14,7 @@ export const LISTEN_ERR = {
   RATE: 'กดฟังถี่เกินไป รอสักครู่แล้วลองใหม่',
   NET: 'เชื่อมต่อไม่ได้ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่',
   BAD_DIAL: 'เบอร์ภายในในระบบไม่ถูกต้อง แจ้งแอดมิน',
+  BAD_MODE: 'ระบบยังไม่รองรับคำสั่งนี้ ลองรีเฟรชหน้าเว็บ',
   ERR: 'ระบบขัดข้อง ลองใหม่อีกครั้ง',
   NO_FILE: 'ยังไม่มีไฟล์ตัวติดตั้งในระบบ แจ้งแอดมิน',
   AUTH: 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่',
@@ -27,12 +30,13 @@ export function listenMode({ ua = ua0(), pointer, ready }) {
   return pointer === 'mouse' && ready && isWindows(ua) ? 'listen' : 'none';
 }
 
-// ตัวเลข 2–6 หลักเท่านั้น (DB check เดียวกัน) · อย่างอื่น = null (ไม่โทร)
-export const dialUri = (yale) => (/^[0-9]{2,6}$/.test(String(yale ?? '')) ? `tel:${LISTEN_PREFIX}${yale}` : null);
+// ตัวเลข 2–6 หลักเท่านั้น (DB check เดียวกัน) + โหมดที่รู้จัก · อย่างอื่น = null (ไม่โทร)
+export const dialUri = (yale, mode = 'listen') => (Object.hasOwn(LISTEN_MODES, mode) && /^[0-9]{2,6}$/.test(String(yale ?? '')) ? `tel:${LISTEN_MODES[mode]}${yale}` : null);
+const TEL_OK = /^tel:\*22[23][0-9]{2,6}$/;
 
 // เปิดลิงก์ tel: ด้วย anchor ชั่วคราว (ไม่เปลี่ยนหน้า) · ตรวจ Windows ซ้ำอีกชั้นก่อนเปิด
 export function openTel(uri) {
-  if (!uri || !uri.startsWith('tel:' + LISTEN_PREFIX) || !isWindows()) return false;
+  if (!uri || !TEL_OK.test(uri) || !isWindows()) return false;
   const a = document.createElement('a');
   a.href = uri; a.style.display = 'none';
   document.body.append(a); a.click(); a.remove();
@@ -41,18 +45,19 @@ export function openTel(uri) {
 
 // กดปุ่มฟัง → RPC (ตรวจสิทธิ์+log+คืนเบอร์) → เปิด tel ถ้ายังอยู่ในช่วงหลังคลิก
 // คืน { status: 'dialed' | 'needs_click' | 'error', code?, uri? } · AuthError โยนต่อ
-export async function startListen({ emp, rpc, now = () => performance.now(), open = openTel, isAuthError = () => false }) {
+export async function startListen({ emp, mode = 'listen', rpc, now = () => performance.now(), open = openTel, isAuthError = () => false }) {
+  if (!Object.hasOwn(LISTEN_MODES, mode)) return { status: 'error', code: 'BAD_MODE' };
   const t0 = now();
   let r;
-  try { r = await rpc('sup_listen_start', { p_emp: emp }); }
+  try { r = await rpc('sup_listen_start', { p_emp: emp, p_mode: mode }); }
   catch (e) {
     if (isAuthError(e)) throw e;
     return { status: 'error', code: e?.message === 'network' ? 'NET' : 'ERR' };
   }
   if (!r || typeof r !== 'object') return { status: 'error', code: 'ERR' };
   if (r.ok !== true) return { status: 'error', code: LISTEN_ERR[r.code] ? r.code : 'ERR' };
-  const uri = dialUri(r.yale_id);
-  if (!uri) return { status: 'error', code: 'BAD_DIAL' };
+  const uri = dialUri(r.yale_id, mode);
+  if (!uri || (r.dial != null && `tel:${r.dial}` !== uri)) return { status: 'error', code: 'BAD_DIAL' };   // เบอร์จาก server ต้องตรงโหมดที่กด
   if (now() - t0 > GESTURE_MS) return { status: 'needs_click', uri, since: r.since, camp: r.camp };
   open(uri);
   return { status: 'dialed', uri, since: r.since, camp: r.camp };
