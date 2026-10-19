@@ -1,17 +1,17 @@
 // หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
-import { rpc, session, AuthError } from '../api.js?v=68';
-import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS, INSTALLER_URL } from '../config.js?v=68';
-import { Odo } from '../odometer.js?v=68';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly, workDays, perDay, teamPerDay, fmtDays } from '../store.js?v=68';
-import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=68';
-import { createLive } from '../live.js?v=68';
-import { createNotifyCenter, noteHtml, noteIcon } from '../notify.js?v=68';
-import { pickRange } from '../calendar.js?v=68';
-import { toast, toastText, burst, createEcg, alarmShake } from '../fx.js?v=68';
-import { CHEV, LOGOUT, CAL, REFRESH, HEADSET, WHISPER, DOWNLOAD } from '../icons.js?v=68';
-import { listenMode, isWindows, startListen, openTel, requestInstaller, LISTEN_ERR, READY_KEY, USED_KEY, INSTALL_STEPS } from '../listen.js?v=68';
-import { themeToggle, ping } from '../theme.js?v=68';
-import { Snd, soundButton } from '../sound.js?v=68';
+import { rpc, session, AuthError } from '../api.js?v=69';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS, INSTALLER_URL } from '../config.js?v=69';
+import { Odo } from '../odometer.js?v=69';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly, workDays, perDay, teamPerDay, fmtDays } from '../store.js?v=69';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=69';
+import { createLive } from '../live.js?v=69';
+import { createNotifyCenter, noteHtml, noteIcon } from '../notify.js?v=69';
+import { pickRange } from '../calendar.js?v=69';
+import { toast, toastText, burst, createEcg, alarmShake } from '../fx.js?v=69';
+import { CHEV, LOGOUT, CAL, REFRESH, HEADSET, WHISPER, BARGE, DOWNLOAD } from '../icons.js?v=69';
+import { listenMode, isWindows, startListen, openTel, requestInstaller, LISTEN_ERR, READY_KEY, USED_KEY, INSTALL_STEPS } from '../listen.js?v=69';
+import { themeToggle, ping } from '../theme.js?v=69';
+import { Snd, soundButton } from '../sound.js?v=69';
 
 const METRICS = [
   ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],
@@ -796,26 +796,39 @@ export function mountDashboard(root, me, { onLogout }) {
     const empEl = b.closest('.emp'), emp = empEl?.dataset.emp;
     if (!emp || !S.calling.has(emp)) return;
     const nm = empEl.querySelector('.nm')?.textContent || emp, first = localStorage.getItem(USED_KEY) !== '1';
-    // 2 ปุ่ม: 🎧 ฟังสาย (*222 · เงียบ) · 💬 แนะนำในสาย (*223 · พนักงานได้ยินเรา ลูกค้าไม่ได้ยิน) — เจ้านาย 10-17
+    // 3 ปุ่ม: 🎧 ฟังสาย (*222 · เงียบ) · 💬 แนะนำในสาย (*223 · พนักงานได้ยินเรา ลูกค้าไม่ได้ยิน) — เจ้านาย 10-17
+    //        🎙️ ซุปคุยแทน (*224 · ลูกค้าได้ยินทุกเสียง) — เจ้านาย 10-19 · ต้องยืนยันอีกครั้งในกล่องเตือนก่อนสั่ง
     const MODES = { listen: { icon: HEADSET, label: 'ฟังสาย', sub: 'ฟังเงียบ ๆ ไม่มีใครได้ยินเรา', again: 'กดอีกครั้งเพื่อเริ่มฟัง', toast: 'ฟังสาย', tIcon: '🎧' },
-                    whisper: { icon: WHISPER, label: 'แนะนำในสาย', sub: 'พนักงานได้ยิน ลูกค้าไม่ได้ยิน', again: 'กดอีกครั้งเพื่อเริ่มแนะนำ', toast: 'แนะนำในสาย', tIcon: '💬' } };
+                    whisper: { icon: WHISPER, label: 'แนะนำในสาย', sub: 'พนักงานได้ยิน ลูกค้าไม่ได้ยิน', again: 'กดอีกครั้งเพื่อเริ่มแนะนำ', toast: 'แนะนำในสาย', tIcon: '💬' },
+                    barge: { icon: BARGE, label: 'ซุปคุยแทน', sub: 'ลูกค้าได้ยินทุกเสียงที่พูด', again: 'กดอีกครั้งเพื่อเริ่มคุย', toast: 'ซุปคุยแทน', tIcon: '🎙️', ok: 'ยืนยัน คุยแทน' } };
     const box = openModal({ label: `ฟังสาย ${nm}`, cls: 'listen', focus: '.lm-go[data-mode="listen"]', html:
       `<div class="lm-head">${HEADSET}<span>ฟังสาย</span></div>` + whoHtml(nm, emp) + '<div class="cm-info"></div>'
       + (first ? '<p class="lm-hint">ครั้งแรก: ถ้า Chrome ถาม "เปิด Yale Com?" ให้ติ๊ก <b>อนุญาตเสมอ</b> แล้วกดเปิด</p>' : '')
       + '<p class="lm-err" role="alert" hidden></p>'
-      + '<div class="lm-btns lm-two">' + Object.entries(MODES).map(([k, m]) => `<button class="lm-go${k === 'whisper' ? ' lm-whisper' : ''}" type="button" data-mode="${k}">${m.icon}<span class="lm-t"><span class="lm-lab">${m.label}</span><small>${m.sub}</small></span></button>`).join('')
-      + '<button class="cm-ok" type="button" data-close>ยกเลิก</button></div>' });
+      + '<div class="lm-btns lm-two">' + Object.entries(MODES).map(([k, m]) => `<button class="lm-go lm-${k}" type="button" data-mode="${k}"${k === 'barge' ? ' data-arm' : ''}>${m.icon}<span class="lm-t"><span class="lm-lab">${m.label}</span><small>${m.sub}</small></span></button>`).join('')
+      + '<button class="cm-ok" type="button" data-close>ยกเลิก</button></div>'
+      // กล่องยืนยันซุปคุยแทน (แทนที่แถวปุ่ม) · ปุ่มยืนยันอยู่คนละตำแหน่ง + กดได้หลัง 0.8 วิ = กันดับเบิลคลิกทะลุ
+      + `<div class="lm-confirm" role="alertdialog" aria-label="ยืนยันซุปคุยแทน" hidden><p class="lm-warn">⚠️ <b>ทุกเสียงที่พูด ลูกค้าจะได้ยิน</b><span>หัวหน้าจะเข้าไปคุยในสาย ทั้งลูกค้าและพนักงานได้ยินเราทั้งหมด</span></p>
+        <div class="lm-btns"><button class="cm-ok" type="button" data-back>ย้อนกลับ</button><button class="lm-go lm-barge-ok" type="button" data-mode="barge" disabled>${BARGE}<span class="lm-lab">${MODES.barge.ok}</span></button></div></div>` });
     cm.listen = { emp, box, info: box.querySelector('.cm-info') };
     paintListenInfo();
-    const gos = [...box.querySelectorAll('.lm-go')], err = box.querySelector('.lm-err');
-    let pending = null, pendMode = null, busy = false;
+    const gos = [...box.querySelectorAll('.lm-go:not([data-arm])')], err = box.querySelector('.lm-err');
+    const row = box.querySelector('.lm-btns.lm-two'), conf = box.querySelector('.lm-confirm'), okB = conf.querySelector('.lm-barge-ok');
+    let pending = null, pendMode = null, busy = false, armT = 0;
+    const label = (g) => (g === okB ? MODES.barge.ok : MODES[g.dataset.mode].label);
+    const showConfirm = (on) => {   // ซุปคุยแทน: กดครั้งแรก = เปิดกล่องเตือน (ยังไม่โทร) · ย้อนกลับ = กลับแถวปุ่มเดิม
+      row.hidden = on; conf.hidden = !on; clearTimeout(armT); okB.disabled = true;
+      if (on) { armT = setTimeout(() => { okB.disabled = false; okB.focus({ preventScroll: true }); }, 800); } else box.querySelector('[data-arm]').focus({ preventScroll: true });
+    };
+    box.querySelector('[data-arm]').addEventListener('click', () => { if (!busy) { err.hidden = true; showConfirm(true); } });
+    conf.querySelector('[data-back]').addEventListener('click', () => { if (!busy) showConfirm(false); });
     const done = (k) => { localStorage.setItem(USED_KEY, '1'); closeCallModal(); toastText(`สั่ง YaleCom ${MODES[k].toast} ${nm} แล้ว`, { icon: MODES[k].tIcon }); };
     for (const go of gos) go.addEventListener('click', async () => {
       const k = go.dataset.mode;
       if (pending && pendMode === k) { openTel(pending); done(k); return; }   // คลิกใหม่ = เปิด tel ได้ (ไม่เรียก RPC ซ้ำ · log บันทึกแล้ว)
       if (busy) return;   // กันกด 2 ปุ่มซ้อน
       busy = true; pending = null; pendMode = null;
-      gos.forEach((g) => { g.disabled = true; g.classList.remove('again'); g.querySelector('.lm-lab').textContent = MODES[g.dataset.mode].label; });
+      gos.forEach((g) => { g.disabled = true; g.classList.remove('again'); g.querySelector('.lm-lab').textContent = label(g); });
       go.classList.add('busy'); err.hidden = true;
       let r;
       try { r = await startListen({ emp, mode: k, rpc, open: openTel, isAuthError: (e) => e instanceof AuthError }); }

@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "68";
+  --build: "69";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -824,3 +824,11 @@ html.nc-open .nc-panel { opacity: 1; visibility: visible; transform: none; trans
 @media (prefers-reduced-motion: reduce) { .unread .nc-dot, .unread.nc-fab svg { animation: none; } }
 /* โหมดเฉลี่ย/วัน (ดูหลายวัน · build 68) */
 .range-label .avg-tag { color: var(--accent); font-weight: 600; }
+/* ซุปคุยแทน (Barge *224 · build 69) — ปุ่มแดงเต็มแถว + กล่องยืนยันก่อนสั่ง */
+.lm-two .lm-go.lm-barge { grid-column: 1 / -1; flex-direction: row; gap: .55rem; background: color-mix(in srgb, var(--down, #ff3b30) 9%, var(--card-solid)); color: var(--down, #ff3b30); box-shadow: inset 0 0 0 1.5px var(--down, #ff3b30); }
+.lm-two .lm-go.lm-barge .lm-t { align-items: flex-start; }
+.lm-confirm .lm-warn { margin: 1rem 0 0; padding: .75rem .9rem; border-radius: 12px; background: color-mix(in srgb, var(--down, #ff3b30) 12%, var(--card-solid)); color: var(--down, #ff3b30); line-height: 1.45; }
+.lm-confirm .lm-warn b { font-size: 1.02rem; }
+.lm-confirm .lm-warn span { display: block; margin-top: .2rem; font-size: .8rem; color: var(--ink); opacity: .8; }
+.lm-go.lm-barge-ok { background: var(--down, #ff3b30); }
+.lm-go.lm-barge-ok:disabled { opacity: .45; cursor: default; }

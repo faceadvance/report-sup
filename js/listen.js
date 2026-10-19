@@ -3,7 +3,7 @@
 // ⚠️ Mac (ต่อ iPhone) / มือถือ: ลิงก์ tel:*222… = โทรออกจริงทางซิม/FaceTime → ห้ามเปิดเด็ดขาด
 export const LISTEN_PREFIX = '*222';
 // โหมด → รหัสฟีเจอร์ Yale (server ประกอบเบอร์เองจากโหมด · ตรงนี้ใช้ตรวจซ้ำอีกชั้น) · ห้ามเพิ่ม *225 แทรกสาย โดยไม่ผ่านเจ้านาย
-export const LISTEN_MODES = { listen: '*222', whisper: '*223' };
+export const LISTEN_MODES = { listen: '*222', whisper: '*223', barge: '*224' };   // barge = ซุปคุยแทน (build 69 · ลูกค้าได้ยินทุกเสียง · หน้าเว็บต้องยืนยันอีกครั้ง)
 export const READY_KEY = 'sl_listen_ready';   // '1' = เคยกดดาวน์โหลดตัวติดตั้งในเครื่องนี้
 export const USED_KEY = 'sl_listen_used';     // '1' = เคยสั่งฟังแล้ว (ไม่ต้องโชว์คำแนะนำ Chrome ถามครั้งแรก)
 export const GESTURE_MS = 4000;               // Chrome เปิด tel: ได้เฉพาะช่วงสั้น ๆ หลังคลิก (~5 วิ) → เผื่อไว้ 4 วิ
@@ -32,7 +32,7 @@ export function listenMode({ ua = ua0(), pointer, ready }) {
 
 // ตัวเลข 2–6 หลักเท่านั้น (DB check เดียวกัน) + โหมดที่รู้จัก · อย่างอื่น = null (ไม่โทร)
 export const dialUri = (yale, mode = 'listen') => (Object.hasOwn(LISTEN_MODES, mode) && /^[0-9]{2,6}$/.test(String(yale ?? '')) ? `tel:${LISTEN_MODES[mode]}${yale}` : null);
-const TEL_OK = /^tel:\*22[23][0-9]{2,6}$/;
+const TEL_OK = /^tel:\*22[234][0-9]{2,6}$/;
 
 // เปิดลิงก์ tel: ด้วย anchor ชั่วคราว (ไม่เปลี่ยนหน้า) · ตรวจ Windows ซ้ำอีกชั้นก่อนเปิด
 export function openTel(uri) {
