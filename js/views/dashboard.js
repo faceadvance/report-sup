@@ -1,17 +1,17 @@
 // หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
-import { rpc, session, AuthError } from '../api.js?v=69';
-import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS, INSTALLER_URL } from '../config.js?v=69';
-import { Odo } from '../odometer.js?v=69';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly, workDays, perDay, teamPerDay, fmtDays } from '../store.js?v=69';
-import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=69';
-import { createLive } from '../live.js?v=69';
-import { createNotifyCenter, noteHtml, noteIcon } from '../notify.js?v=69';
-import { pickRange } from '../calendar.js?v=69';
-import { toast, toastText, burst, createEcg, alarmShake } from '../fx.js?v=69';
-import { CHEV, LOGOUT, CAL, REFRESH, HEADSET, WHISPER, BARGE, DOWNLOAD } from '../icons.js?v=69';
-import { listenMode, isWindows, startListen, openTel, requestInstaller, LISTEN_ERR, READY_KEY, USED_KEY, INSTALL_STEPS } from '../listen.js?v=69';
-import { themeToggle, ping } from '../theme.js?v=69';
-import { Snd, soundButton } from '../sound.js?v=69';
+import { rpc, session, AuthError } from '../api.js?v=70';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS, INSTALLER_URL } from '../config.js?v=70';
+import { Odo } from '../odometer.js?v=70';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly, workDays, perDay, teamPerDay, fmtDays } from '../store.js?v=70';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=70';
+import { createLive } from '../live.js?v=70';
+import { createNotifyCenter, noteHtml, noteIcon } from '../notify.js?v=70';
+import { pickRange } from '../calendar.js?v=70';
+import { toast, toastText, burst, createEcg, alarmShake } from '../fx.js?v=70';
+import { CHEV, LOGOUT, CAL, REFRESH, HEADSET, WHISPER, BARGE, DOWNLOAD } from '../icons.js?v=70';
+import { listenMode, isWindows, startListen, openTel, requestInstaller, LISTEN_ERR, READY_KEY, USED_KEY, INSTALL_STEPS } from '../listen.js?v=70';
+import { themeToggle, ping } from '../theme.js?v=70';
+import { Snd, soundButton } from '../sound.js?v=70';
 
 const METRICS = [
   ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],
@@ -79,8 +79,10 @@ export function mountDashboard(root, me, { onLogout }) {
   const isLive = () => S.to === S.today;
   isLiveRef = isLive;
   const multi = () => S.from !== S.to;
-  // โหมดเฉลี่ย/วัน: เฉพาะตอนดูหลายวัน · จำค่าที่เลือก (sl_avg) · หาร uniq/สาย/รับสาย/talktime ด้วยวันทำงาน (store.dayWeight)
-  S.avg = localStorage.getItem('sl_avg') === '1';
+  // โหมดเฉลี่ย/วัน: เฉพาะตอนดูหลายวัน · **ค่าเริ่มต้น = เฉลี่ย** (เจ้านาย 10-19 · build 70) · จำค่าที่เลือก (sl_view: avg|sum)
+  // คีย์ใหม่ sl_view แทน sl_avg (build 68–69 ค่าเริ่มต้น = รวม) → ทุกเครื่องเริ่มที่เฉลี่ยใหม่หมด · หาร uniq/สาย/รับสาย/talktime ด้วยวันทำงาน (store.dayWeight)
+  S.avg = localStorage.getItem('sl_view') !== 'sum';
+  localStorage.removeItem('sl_avg');
   const avgOn = () => multi() && S.avg;
   avgRef = avgOn;
   const vm = (emp, camp) => (avgOn() ? perDay(get(S.idx, emp, camp), workDays(S.att, emp)) : get(S.idx, emp, camp));
@@ -640,7 +642,7 @@ export function mountDashboard(root, me, { onLogout }) {
     const b = e.target.closest('[data-view]'); if (!b) return;
     const avg = b.dataset.view === 'avg'; if (avg === S.avg) return;
     Snd.select();
-    S.avg = avg; localStorage.setItem('sl_avg', avg ? '1' : '0');
+    S.avg = avg; localStorage.setItem('sl_view', avg ? 'avg' : 'sum');
     syncSegs();
     for (const row of S.rows.values()) row.update(false);
     renderSummary(false); arrange(true);
