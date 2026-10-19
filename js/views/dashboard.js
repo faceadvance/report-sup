@@ -1,17 +1,17 @@
 // หน้าหลัก Sup Live — สร้าง DOM ครั้งเดียว · ข้อมูลเปลี่ยน = patch เฉพาะ node ค่า (odometer) ไม่กระพริบทั้งจอ
-import { rpc, session, AuthError } from '../api.js?v=67';
-import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS, INSTALLER_URL } from '../config.js?v=67';
-import { Odo } from '../odometer.js?v=67';
-import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly } from '../store.js?v=67';
-import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=67';
-import { createLive } from '../live.js?v=67';
-import { createNotifyCenter, noteHtml, noteIcon } from '../notify.js?v=67';
-import { pickRange } from '../calendar.js?v=67';
-import { toast, toastText, burst, createEcg, alarmShake } from '../fx.js?v=67';
-import { CHEV, LOGOUT, CAL, REFRESH, HEADSET, WHISPER, DOWNLOAD } from '../icons.js?v=67';
-import { listenMode, isWindows, startListen, openTel, requestInstaller, LISTEN_ERR, READY_KEY, USED_KEY, INSTALL_STEPS } from '../listen.js?v=67';
-import { themeToggle, ping } from '../theme.js?v=67';
-import { Snd, soundButton } from '../sound.js?v=67';
+import { rpc, session, AuthError } from '../api.js?v=68';
+import { CAMPAIGNS, TOTAL, MAX_DAYS, SIGNAL_DEBOUNCE_MS, INSTALLER_URL } from '../config.js?v=68';
+import { Odo } from '../odometer.js?v=68';
+import { indexStats, indexAtt, mergeEmp, mergeAtt, teamSummary, sortMembers, get, workState, EMPTY, indexHourly, mergeHourly, teamHourly, workDays, perDay, teamPerDay, fmtDays } from '../store.js?v=68';
+import { int, money, pct, hm, ago, dur, todayISO, addDays, diffDays, thDate, thDow, bkkMinutes, esc, mmss, talkHtml } from '../fmt.js?v=68';
+import { createLive } from '../live.js?v=68';
+import { createNotifyCenter, noteHtml, noteIcon } from '../notify.js?v=68';
+import { pickRange } from '../calendar.js?v=68';
+import { toast, toastText, burst, createEcg, alarmShake } from '../fx.js?v=68';
+import { CHEV, LOGOUT, CAL, REFRESH, HEADSET, WHISPER, DOWNLOAD } from '../icons.js?v=68';
+import { listenMode, isWindows, startListen, openTel, requestInstaller, LISTEN_ERR, READY_KEY, USED_KEY, INSTALL_STEPS } from '../listen.js?v=68';
+import { themeToggle, ping } from '../theme.js?v=68';
+import { Snd, soundButton } from '../sound.js?v=68';
 
 const METRICS = [
   ['list', 'รายชื่อ'], ['uniq', 'ชื่อที่โทร'], ['calls', 'สาย'], ['ans', 'รับสาย'],
@@ -49,7 +49,7 @@ function paintDelta(el, h, k, full, hourLabel) {
   if (!el) return;
   const base = el.className.split(' ')[0];
   const cur = h && isLiveRef() ? (h.cur[k] || 0) : 0;
-  if (!h || !isLiveRef() || (!cur && !full)) { el.textContent = ''; el.dataset.key = ''; el.className = base; return; }
+  if (!h || !isLiveRef() || avgRef() || (!cur && !full)) { el.textContent = ''; el.dataset.key = ''; el.className = base; return; }
   const key = `${cur}|${hourLabel || ''}`;
   if (el.dataset.key === key) return;
   el.dataset.key = key;
@@ -59,7 +59,7 @@ function paintDelta(el, h, k, full, hourLabel) {
   el.className = `${base} ${cls} pop`; setTimeout(() => el.classList.remove('pop'), 500);
   el.title = `ชั่วโมงนี้เพิ่ม ${int(cur)}`;
 }
-let isLiveRef = () => false;
+let isLiveRef = () => false, avgRef = () => false;
 const sign = (a, b) => (a === null || b === null || a === undefined || b === undefined ? 0 : Math.sign(b - a));
 
 export function mountDashboard(root, me, { onLogout }) {
@@ -79,6 +79,11 @@ export function mountDashboard(root, me, { onLogout }) {
   const isLive = () => S.to === S.today;
   isLiveRef = isLive;
   const multi = () => S.from !== S.to;
+  // โหมดเฉลี่ย/วัน: เฉพาะตอนดูหลายวัน · จำค่าที่เลือก (sl_avg) · หาร uniq/สาย/รับสาย/talktime ด้วยวันทำงาน (store.dayWeight)
+  S.avg = localStorage.getItem('sl_avg') === '1';
+  const avgOn = () => multi() && S.avg;
+  avgRef = avgOn;
+  const vm = (emp, camp) => (avgOn() ? perDay(get(S.idx, emp, camp), workDays(S.att, emp)) : get(S.idx, emp, camp));
 
   // ════════ โครงหน้า ════════
   root.innerHTML = `<div class="app">
@@ -101,6 +106,7 @@ export function mountDashboard(root, me, { onLogout }) {
       <div class="seg team" role="group" aria-label="เลือกทีม"><span class="ind"></span>${canAll ? '<button data-team="0"><span class="tdot all"></span>ทุกทีม</button>' : ''}${me.teams.map((t) => `<button data-team="${t.id}" style="--c:${esc(t.color || '#0071e3')}"><span class="tdot"></span>${esc(t.name)}</button>`).join('')}</div>
       <div class="seg date" role="group" aria-label="เลือกวัน"><span class="ind"></span>
         <button data-mode="today">วันนี้</button><button data-mode="yesterday">เมื่อวาน</button><button data-mode="range">${CAL} <span>เลือกช่วง</span></button></div>
+      <div class="seg view" role="group" aria-label="รวมหรือเฉลี่ยต่อวัน" hidden><span class="ind"></span><button data-view="sum">รวม</button><button data-view="avg">เฉลี่ย/วัน</button></div>
     </section>
     <section class="summary">
       ${[['uniq', 'ชื่อที่โทร', ''], ['calls', 'สายโทร', 'k-call'], ['ans', 'รับสาย', ''], ['orders', 'ออเดอร์', 'k-ord'], ['aov', 'AOV<i class="lx"> (บาท)</i>', ''], ['sales', 'ยอดขาย<i class="lx"> (บาท)</i>', 'k-sales'], ['con', 'Con%', 'k-con']]
@@ -151,12 +157,15 @@ export function mountDashboard(root, me, { onLogout }) {
     const tb = $(`.seg.team [data-team="${S.team}"]`), ts = $('.seg.team');   // มือถือ: ปุ่มทีมเลื่อนได้ → เลื่อนปุ่มที่เลือกให้อยู่ในจอ
     if (tb && ts.scrollWidth > ts.clientWidth) ts.scrollTo({ left: Math.max(0, tb.offsetLeft - (ts.clientWidth - tb.offsetWidth) / 2), behavior: 'smooth' });
     segSet($('.seg.date'), $(`.seg.date [data-mode="${S.mode}"]`));
+    $('.seg.view').hidden = !multi();
+    if (multi()) segSet($('.seg.view'), $(`.seg.view [data-view="${S.avg ? 'avg' : 'sum'}"]`));
+    $('.app').classList.toggle('avg', avgOn());
     root.querySelectorAll('.sorter button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.sort === S.sort)));
     const n = diffDays(S.from, S.to) + 1;
     const team = S.me.teams.find((t) => t.id === S.team);
     $('.team-title').textContent = S.team === ALL ? 'ทุกทีม' : team ? team.name : 'ยังไม่มีทีม';
     $('.range-label').innerHTML = multi()
-      ? `<b>${thDate(S.from)} – ${thDate(S.to, true)}</b> · ${n} วัน`
+      ? `<b>${thDate(S.from)} – ${thDate(S.to, true)}</b> · ${n} วัน${avgOn() ? ' · <span class="avg-tag">เฉลี่ย/วัน</span>' : ''}`
       : `<b>${thDow(S.from)} ${thDate(S.from, true)}</b>${isLive() ? ' · Live' : ' · ย้อนหลัง'}`;
   };
   addEventListener('resize', () => syncSegs());
@@ -196,7 +205,7 @@ export function mountDashboard(root, me, { onLogout }) {
       el.querySelector('.emp-head').addEventListener('click', () => toggle(this));
     }
     update(animate) {
-      const t = get(S.idx, this.m.emp);
+      const t = vm(this.m.emp);
       const cur = num(t);
       for (const [k] of METRICS) {
         const v = cur[k];
@@ -220,7 +229,7 @@ export function mountDashboard(root, me, { onLogout }) {
     updateDelta() {
       const h = S.hr.map.get(this.m.emp);
       for (const k of Object.keys(HK)) paintDelta(this.dl[k], h, HK[k], false, S.hr.cur_hour);
-      const add = h && isLive() ? (h.cur.talk || 0) : 0;   // talktime ที่เพิ่มในชั่วโมงนี้
+      const add = h && isLive() && !avgOn() ? (h.cur.talk || 0) : 0;   // talktime ที่เพิ่มในชั่วโมงนี้ (โหมดเฉลี่ย = ซ่อน)
       const txt = add > 0 ? '+' + mmss(add) : '';   // +mm:ss (หน่วยรู้จากค่าด้านบนแล้ว)
       if (this.ttD.textContent !== txt) { this.ttD.textContent = txt; this.ttD.classList.remove('pop'); void this.ttD.offsetWidth; if (txt) this.ttD.classList.add('pop'); }
     }
@@ -232,7 +241,7 @@ export function mountDashboard(root, me, { onLogout }) {
       this.st.hidden = !live;
       // LIVE = จุดเขียวที่รูปพอ · ไม่ LIVE → ข้อความเทาเล็กต่อท้ายรหัส (ปิดกี่โมง / ยังไม่เปิด)
       const r = S.att.get(this.m.emp)?.get(S.today);
-      this.stx.textContent = !live || ws === 'on' ? '' : ws === 'off' ? `· ปิด ${hm(r?.last_off)}` : '· ยังไม่เปิด';
+      this.stx.textContent = avgOn() ? `· ${fmtDays(workDays(S.att, this.m.emp))} วัน` : !live || ws === 'on' ? '' : ws === 'off' ? `· ปิด ${hm(r?.last_off)}` : '· ยังไม่เปิด';
       this.st.title = ws === 'on' ? 'LIVE · เปิดระบบอยู่' : ws === 'off' ? 'ปิดระบบแล้ว' : 'ยังไม่เปิดระบบ';
       this.updateCall();
     }
@@ -271,7 +280,7 @@ export function mountDashboard(root, me, { onLogout }) {
     }
     update(animate) {
       for (const it of this.items) {
-        const m = get(S.idx, this.row.m.emp, it.name);
+        const m = vm(this.row.m.emp, it.name);
         const cur = num(m);
         for (const [k] of METRICS) {
           const dir = animate && it.prev ? sign(it.prev[k], cur[k]) : 0;
@@ -405,7 +414,7 @@ export function mountDashboard(root, me, { onLogout }) {
   // ── จัดเรียง + FLIP ──
   function arrange(animate) {
     const rank = isLive() ? (emp) => ({ on: 0, off: 1, none: 2 })[workState(S.att, emp, S.today).s] : null;
-    const order = sortMembers(S.members, S.idx, S.sort, rank).map((m) => S.rows.get(m.emp)).filter(Boolean);
+    const order = sortMembers(S.members, S.idx, S.sort, rank, avgOn() ? vm : null).map((m) => S.rows.get(m.emp)).filter(Boolean);
     const cur = [...list.children];
     if (order.length === cur.length && order.every((r, i) => r.el === cur[i])) return;
     const first = new Map(order.map((r) => [r, r.el.getBoundingClientRect().top]));
@@ -439,7 +448,8 @@ export function mountDashboard(root, me, { onLogout }) {
 
   function renderSummary(animate) {
     const s = teamSummary(S.idx, S.members);
-    const cur = { calls: s.calls, ans: s.answered, uniq: s.uniq, orders: s.orders, aov: s.aov, sales: s.sales_sum, con: s.con };
+    const a = avgOn() ? teamPerDay(S.idx, S.att, S.members) : null;   // โหมดเฉลี่ย: ชื่อที่โทร/สาย/รับสาย = ต่อคนต่อวัน · ที่เหลือคงยอดรวม
+    const cur = { calls: a ? a.calls : s.calls, ans: a ? a.answered : s.answered, uniq: a ? a.uniq : s.uniq, orders: s.orders, aov: s.aov, sales: s.sales_sum, con: s.con };
     for (const k of Object.keys(cur)) {
       const dir = animate && sumPrev ? sign(sumPrev[k], cur[k]) : 0;
       const txt = k === 'aov' || k === 'sales' ? (cur[k] === null ? '—' : money(cur[k])) : k === 'con' ? (cur[k] === null ? '—' : pct(cur[k])) : int(cur[k]);
@@ -447,7 +457,7 @@ export function mountDashboard(root, me, { onLogout }) {
       sumOdo[k].el?.closest('.kpi')?.classList.toggle('long', txt.length > 6);   // หลักล้าน/100.00% → มือถือย่อตัวเลข
     }
     const onCnt = isLive() ? S.members.filter((m) => workState(S.att, m.emp, S.today).s === 'on').length : null;
-    sumSub.calls.textContent = onCnt === null ? `${S.members.length} คนในทีม` : `ทำงาน ${onCnt}/${S.members.length} คน`;
+    sumSub.calls.textContent = a ? `เฉลี่ย/คน/วัน · ${fmtDays(a.days)} คน-วัน` : onCnt === null ? `${S.members.length} คนในทีม` : `ทำงาน ${onCnt}/${S.members.length} คน`;
     sumSub.ans.textContent = s.calls ? `อัตรารับ ${pct((s.answered / s.calls) * 100)}` : ' ';
     sumSub.uniq.textContent = s.list !== null ? `ถือครอง ${int(s.list)}` : 'ถือครอง —';
     sumSub.orders.textContent = `ปิดได้ ${s.closers}/${S.members.length} คน`;
@@ -625,6 +635,15 @@ export function mountDashboard(root, me, { onLogout }) {
     Snd.select();
     S.sort = b.dataset.sort; localStorage.setItem('sl_sort', S.sort);
     syncSegs(); arrange(true);
+  });
+  $('.seg.view').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-view]'); if (!b) return;
+    const avg = b.dataset.view === 'avg'; if (avg === S.avg) return;
+    Snd.select();
+    S.avg = avg; localStorage.setItem('sl_avg', avg ? '1' : '0');
+    syncSegs();
+    for (const row of S.rows.values()) row.update(false);
+    renderSummary(false); arrange(true);
   });
   $('[data-act=logout]').addEventListener('click', () => { live.stop(); nc.destroy(); onLogout(); });
 

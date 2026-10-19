@@ -1,5 +1,5 @@
 // คำนวณ/จัดเก็บข้อมูล — ฟังก์ชันล้วน (เทสด้วย node ได้)
-import { TOTAL } from './config.js?v=67';
+import { TOTAL } from './config.js?v=68';
 
 export function derive(r) {
   const orders = r.orders || 0, uniq = r.uniq || 0, sales = Number(r.sales_sum || 0);
@@ -67,12 +67,50 @@ const SORTS = {
   sales: (a, b) => b.sales_sum - a.sales_sum || b.orders - a.orders,
 };
 // liveRank(emp) → 0 = LIVE · 1 = ปิดระบบแล้ว · 2 = ยังไม่เปิด (ใช้เฉพาะเรียงตามรหัสตอนดู Live)
-export function sortMembers(members, idx, key = 'code', liveRank = null) {
+// view(emp) → ค่าที่โชว์จริง (โหมดเฉลี่ย/วัน ส่งมา) · ไม่ส่ง = ยอดรวม
+export function sortMembers(members, idx, key = 'code', liveRank = null, view = null) {
   const byCode = (a, b) => a.emp.localeCompare(b.emp);
   const f = SORTS[key] || SORTS.code;
   const byLive = key === 'code' && liveRank ? (a, b) => liveRank(a.emp) - liveRank(b.emp) : () => 0;
-  return [...members].sort((a, b) => byLive(a, b) || f(get(idx, a.emp), get(idx, b.emp)) || byCode(a, b));
+  const v = view || ((emp) => get(idx, emp));
+  return [...members].sort((a, b) => byLive(a, b) || f(v(a.emp), v(b.emp)) || byCode(a, b));
 }
+
+// ════════ โหมด "เฉลี่ย/วัน" (ดูหลายวัน) ════════
+// 1 วันทำงาน = มาทำงาน (เปิดระบบ/มีสายโทร) และเวลาเปิดระบบในกะ ≥ 60% ของกะ · มาแต่ไม่ถึง = 0.5 วัน · ไม่มา = 0
+// shift_min / shift_cap มาจาก sup_attendance (cap = กะ 09–18 หักพัก = 480 · วันนี้ = เฉพาะส่วนที่ผ่านไปแล้ว)
+export const FULL_DAY_PCT = 0.6;
+export function dayWeight(r) {
+  if (!r) return 0;
+  const worked = !!r.first_on || (r.calls || 0) > 0 || (r.minutes || 0) > 0;
+  if (!worked) return 0;
+  const cap = r.shift_cap;
+  if (cap === null || cap === undefined || cap <= 0) return 1;   // server เก่ายังไม่มีฟิลด์ / วันนี้ยังไม่ถึงกะ → วัดไม่ได้ นับเต็มวัน
+  return (r.shift_min || 0) >= FULL_DAY_PCT * cap ? 1 : 0.5;
+}
+export function workDays(att, emp) {
+  let d = 0;
+  for (const r of (att.get(emp) || new Map()).values()) d += dayWeight(r);
+  return d;
+}
+// ค่าที่หารเฉลี่ย (ยอดขาย/ออเดอร์/Con%/AOV/รายชื่อ = คงเดิม) · ไม่มีวันทำงาน → null (โชว์ —)
+export const AVG_KEYS = ['uniq', 'calls', 'answered', 'talk'];
+export function perDay(m, days) {
+  const o = { ...m };
+  for (const k of AVG_KEYS) o[k] = m[k] === null || m[k] === undefined ? m[k] : days > 0 ? m[k] / days : null;
+  return o;
+}
+// การ์ดรวมทีม: ยอดรวมทั้งทีม ÷ จำนวนคน-วันทั้งทีม = เฉลี่ยต่อคนต่อวัน
+export function teamPerDay(idx, att, members) {
+  const s = { uniq: 0, calls: 0, answered: 0, days: 0 };
+  for (const m of members) {
+    const t = get(idx, m.emp);
+    s.uniq += t.uniq; s.calls += t.calls; s.answered += t.answered; s.days += workDays(att, m.emp);
+  }
+  for (const k of ['uniq', 'calls', 'answered']) s[k] = s.days > 0 ? s[k] / s.days : null;
+  return s;
+}
+export const fmtDays = (d) => (Number.isInteger(d) ? String(d) : d.toFixed(1));
 
 // สถานะการทำงานวันนี้: on / off / none
 export function workState(att, emp, today) {

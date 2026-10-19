@@ -3,7 +3,7 @@
    โหมดสว่าง (ค่าเริ่ม) / มืด = html.dark · ตัวอักษร SF Pro + Noto Sans Thai
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --build: "67";
+  --build: "68";
   --bg: #f5f5f7; --ink: #1d1d1f; --ink-2: #424245; --sub: #6e6e73; --faint: #86868b;
   --card: #ffffffcc; --card-solid: #ffffff; --well: #0000000a;
   --line: #00000014; --line-2: #0000001f;
@@ -822,3 +822,5 @@ html.nc-open .nc-panel { opacity: 1; visibility: visible; transform: none; trans
   .nc-list { padding-bottom: 5rem; }   /* รายการท้ายสุดไม่โดนปุ่มปิดบัง */
 }
 @media (prefers-reduced-motion: reduce) { .unread .nc-dot, .unread.nc-fab svg { animation: none; } }
+/* โหมดเฉลี่ย/วัน (ดูหลายวัน · build 68) */
+.range-label .avg-tag { color: var(--accent); font-weight: 600; }

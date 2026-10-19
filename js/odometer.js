@@ -17,6 +17,7 @@ export class Odo {
     if (text === this.text) return false;
     const prev = this.text;
     this.text = text;
+    this.el.dataset.v = text;   // ค่าจริงที่โชว์ (ตัวเลขแยกเป็นแถบ 0-9 อ่าน textContent ไม่ได้) · ใช้ในเทส
     const chars = [...text];
     const sig = chars.map((c) => (isDigit(c) ? '#' : c)).join('');
     if (sig !== this.sig) {
